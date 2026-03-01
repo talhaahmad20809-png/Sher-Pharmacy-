@@ -1,270 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sher Pharmacy Register</title>
-<style>
-body{font-family:Arial;background:#f2f2f2;padding:10px;}
-.container{background:#fff;padding:10px;border:2px solid #1f3c88;max-width:1000px;margin:auto;}
-.header{text-align:center;font-size:24px;font-weight:bold;color:#1f3c88;margin-bottom:8px;}
-.top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-.topLine{display:flex;gap:10px;justify-content:space-between;align-items:center;margin:6px 0;font-size:12px;}
-.topLine input{width:80px;height:24px;font-size:12px;padding:2px;}
-input, textarea{width:100%;border:1px solid #aaa;font-size:13px;padding:4px;box-sizing:border-box;}
-input{height:30px;} textarea{height:45px;resize:none;}
-.tableWrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:650px;}
-th,td{border:1px solid #1f3c88;padding:4px;font-size:12px;text-align:center;}
-th{background:#e8edff;}
-.summary,.monthly,.yearly,.companySummary{
-margin-top:8px;padding:6px;border:2px solid #1f3c88;
-background:#f9f9ff;font-size:12px;
-display:grid;grid-template-columns:1fr 1fr;gap:4px;
-}
-button{padding:5px 10px;font-size:13px;cursor:pointer;margin-top:6px;}
-#searchBox{margin:8px 0;height:28px;font-size:13px;padding:4px;width:100%;}
-@media(max-width:600px){
-.header{font-size:20px;}
-th,td{font-size:11px;}
-.topLine{flex-direction:column;gap:6px;}
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Data</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 </head>
-
 <body>
+    <h1>Pharmacy Data Sync</h1>
+    <div id="pharmacy-data"></div>
+    <script>
+        const firebaseConfig = {
+            apiKey: 'YOUR_API_KEY',
+            authDomain: 'YOUR_AUTH_DOMAIN',
+            databaseURL: 'YOUR_DATABASE_URL',
+            projectId: 'YOUR_PROJECT_ID',
+            storageBucket: 'YOUR_STORAGE_BUCKET',
+            messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+            appId: 'YOUR_APP_ID'
+        };
 
-<div class="container">
-<div class="header">Sher Pharmacy</div>
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-<div class="top">
-<button onclick="changeDay(-1)">⏮️</button>
-<input type="date" id="date">
-<button onclick="changeDay(1)">▶️</button>
-</div>
+        const dataDisplay = document.getElementById('pharmacy-data');
 
-<div class="topLine">
-<div><strong>Day:</strong> <span id="dayName"></span></div>
-<div><strong>Electricity:</strong> <input type="number" id="electricBill" value="0" oninput="saveExtra()"></div>
-<div><strong>Telephone:</strong> <input type="number" id="phoneBill" value="0" oninput="saveExtra()"></div>
-</div>
+        // Sync data from database
+        database.ref('pharmacy').on('value', (snapshot) => {
+            const data = snapshot.val();
+            let htmlContent = '';
 
-<input type="text" id="searchBox" placeholder="Search Company..." oninput="filterCompany()">
+            for (let key in data) {
+                htmlContent += `<p>${key}: ${data[key]}</p>`;
+            }
 
-<div class="tableWrap">
-<table id="table">
-<tr>
-<th>Company</th>
-<th>Bill</th>
-<th>Baqaya</th>
-<th>Order</th>
-<th>Order Pay</th>
-<th>Sale</th>
-<th>Delete</th>
-</tr>
-</table>
-</div>
-
-<button onclick="addRow()">➕ Add Row</button>
-<button onclick="exportData()">📤 Export</button>
-<input type="file" id="importFile" hidden onchange="importData(event)">
-<button onclick="importFile.click()">📥 Import</button>
-<button onclick="window.print()">🖨️ Print</button>
-
-<div class="summary">
-<div>Today Bill: Rs <span id="billT">0</span></div>
-<div>Order Pay: Rs <span id="orderT">0</span></div>
-<div>Sale: Rs <span id="saleT">0</span></div>
-<div>Baqaya: Rs <span id="baqayaT">0</span></div>
-<div>Electricity: Rs <span id="eTotal">0</span></div>
-<div>Telephone: Rs <span id="pTotal">0</span></div>
-</div>
-
-<div class="monthly">
-<div>Monthly Bill: Rs <span id="mBill">0</span></div>
-<div>Monthly Order: Rs <span id="mOrder">0</span></div>
-<div>Monthly Sale: Rs <span id="mSale">0</span></div>
-<div>Monthly Baqaya: Rs <span id="mBaqaya">0</span></div>
-<div>Monthly Electricity: Rs <span id="mElectric">0</span></div>
-<div>Monthly Telephone: Rs <span id="mPhone">0</span></div>
-</div>
-
-<div class="yearly">
-<div>Yearly Bill: Rs <span id="yBill">0</span></div>
-<div>Yearly Order: Rs <span id="yOrder">0</span></div>
-<div>Yearly Sale: Rs <span id="ySale">0</span></div>
-<div>Yearly Baqaya: Rs <span id="yBaqaya">0</span></div>
-<div>Yearly Electricity: Rs <span id="yElectric">0</span></div>
-<div>Yearly Telephone: Rs <span id="yPhone">0</span></div>
-</div>
-
-<div class="companySummary">
-<div>Company Bill: Rs <span id="cBill">0</span></div>
-<div>Company Order: Rs <span id="cOrder">0</span></div>
-<div>Company Sale: Rs <span id="cSale">0</span></div>
-<div>Company Baqaya: Rs <span id="cBaqaya">0</span></div>
-</div>
-</div>
-
-<script>
-const dateInput=document.getElementById("date");
-const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const dayName=document.getElementById("dayName");
-const electricBill=document.getElementById("electricBill");
-const phoneBill=document.getElementById("phoneBill");
-
-dateInput.value=new Date().toISOString().split("T")[0];
-
-function addRow(d={}){
-let r=document.createElement("tr");
-r.innerHTML=`
-<td><input value="${d.c||""}"></td>
-<td><input type="number" value="${d.b||""}"></td>
-<td><input type="number" value="${d.q||""}"></td>
-<td><textarea>${d.o||""}</textarea></td>
-<td><input type="number" value="${d.op||""}"></td>
-<td><input type="number" value="${d.s||""}"></td>
-<td><button onclick="this.closest('tr').remove();save()">❌</button></td>`;
-table.appendChild(r);
-r.querySelectorAll("input,textarea").forEach(e=>e.oninput=save);
-}
-
-function save(){
-let arr=[],b=0,q=0,o=0,s=0;
-document.querySelectorAll("#table tr").forEach((r,i)=>{
-if(i===0)return;
-let e=r.querySelectorAll("input,textarea");
-let d={c:e[0].value,b:+e[1].value||0,q:+e[2].value||0,o:e[3].value,op:+e[4].value||0,s:+e[5].value||0};
-b+=d.b;q+=d.q;o+=d.op;s+=d.s;
-arr.push(d);
-});
-billT.innerText=b;baqayaT.innerText=q;orderT.innerText=o;saleT.innerText=s;
-localStorage.setItem(dateInput.value,JSON.stringify(arr));
-saveExtra();calcMY();filterCompany();
-}
-
-function load(){
-table.querySelectorAll("tr:not(:first-child)").forEach(r=>r.remove());
-(JSON.parse(localStorage.getItem(dateInput.value))||Array(10).fill({})).forEach(addRow);
-dayName.innerText=days[new Date(dateInput.value).getDay()];
-loadExtra();save();
-}
-
-function changeDay(n){
-let d=new Date(dateInput.value);
-d.setDate(d.getDate()+n);
-dateInput.value=d.toISOString().split("T")[0];
-load();
-}
-
-function saveExtra(){
-localStorage.setItem(dateInput.value+"_extra",JSON.stringify({e:+electricBill.value||0,p:+phoneBill.value||0}));
-eTotal.innerText=electricBill.value;pTotal.innerText=phoneBill.value;
-}
-
-function loadExtra(){
-let ex=JSON.parse(localStorage.getItem(dateInput.value+"_extra")||'{"e":0,"p":0}');
-electricBill.value=ex.e;phoneBill.value=ex.p;
-}
-
-function calcMY(){
-let mB=0,mO=0,mQ=0,mS=0,mE=0,mP=0;
-let yB=0,yO=0,yQ=0,yS=0,yE=0,yP=0;
-let ym=dateInput.value.slice(0,7),y=dateInput.value.slice(0,4);
-Object.keys(localStorage).forEach(k=>{
-if(k.endsWith("_extra"))return;
-let rows=JSON.parse(localStorage.getItem(k)||"[]");
-rows.forEach(r=>{
-if(k.startsWith(ym)){mB+=r.b;mO+=r.op;mQ+=r.q;mS+=r.s;}
-if(k.startsWith(y)){yB+=r.b;yO+=r.op;yQ+=r.q;yS+=r.s;}
-});
-let ex=JSON.parse(localStorage.getItem(k+"_extra")||'{"e":0,"p":0}');
-if(k.startsWith(ym)){mE+=ex.e;mP+=ex.p;}
-if(k.startsWith(y)){yE+=ex.e;yP+=ex.p;}
-});
-mBill.innerText=mB;mOrder.innerText=mO;mBaqaya.innerText=mQ;mSale.innerText=mS;mElectric.innerText=mE;mPhone.innerText=mP;
-yBill.innerText=yB;yOrder.innerText=yO;yBaqaya.innerText=yQ;ySale.innerText=yS;yElectric.innerText=yE;yPhone.innerText=yP;
-}
-
-function filterCompany(){
-let f=searchBox.value.toLowerCase();
-let cb=0,co=0,cs=0,cq=0;
-document.querySelectorAll("#table tr").forEach((r,i)=>{
-if(i===0)return;
-let c=r.cells[0].querySelector("input").value.toLowerCase();
-if(c.includes(f)){
-r.style.display="";
-cb+=+r.cells[1].querySelector("input").value||0;
-cq+=+r.cells[2].querySelector("input").value||0;
-co+=+r.cells[4].querySelector("input").value||0;
-cs+=+r.cells[5].querySelector("input").value||0;
-}else r.style.display="none";
-});
-cBill.innerText=cb;cOrder.innerText=co;cSale.innerText=cs;cBaqaya.innerText=cq;
-}
-
-function exportData(){
-let data={};Object.keys(localStorage).forEach(k=>data[k]=localStorage.getItem(k));
-let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
-a.download="SherPharmacyBackup.json";a.click();
-}
-
-function importData(e){
-let r=new FileReader();
-r.onload=x=>{let d=JSON.parse(x.target.result);Object.keys(d).forEach(k=>localStorage.setItem(k,d[k]));load();}
-r.readAsText(e.target.files[0]);
-}
-
-dateInput.onchange=load;
-load();
-</script>
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBVE_gpvtXFX6NS0mSJdZAgqdRuiX0L4sk",
-  authDomain: "sher-pharmacy.firebaseapp.com",
-  projectId: "sher-pharmacy",
-  storageBucket: "sher-pharmacy.firebasestorage.app",
-  messagingSenderId: "786748371421",
-  appId: "1:786748371421:web:7b0fcdfe21cc4a98fb8634",
-  measurementId: "G-VEHWME4G95"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-  </script>
-  <script>
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCk7BbWumMJ62336BIuGsq7vC0Sakbc3J0",
-  authDomain: "sher-pharmacy-4ac23.firebaseapp.com",
-  projectId: "sher-pharmacy-4ac23",
-  storageBucket: "sher-pharmacy-4ac23.firebasestorage.app",
-  messagingSenderId: "768080516767",
-  appId: "1:768080516767:web:7c9cca15ffac878d86f4aa",
-  measurementId: "G-Y1BN6PYX8W"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-  </script>
+            dataDisplay.innerHTML = htmlContent;
+        });
+    </script>
 </body>
-  
 </html>
