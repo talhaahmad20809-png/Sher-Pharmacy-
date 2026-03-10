@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talha Ahmad – Web Developer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; color:#333; }
+    header { background:#4CAF50; color:white; padding:20px 0; text-align:center; }
+    nav a { color:white; margin:0 15px; text-decoration:none; font-weight:bold; }
+    section { padding:40px 20px; max-width:1000px; margin:auto; }
+    h2 { color:#4CAF50; }
+    footer { background:#333; color:white; text-align:center; padding:20px; }
+    .service { background:white; padding:20px; margin:10px 0; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+    input, textarea { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }
+    button { background:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; }
+    button:hover { background:#45a049; }
+  </style>
+</head>
+<body>
+
+<header>
+  <section>
+  
+</section>
+  <h1>Talha Ahmad – Web Developer</h1>
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#about">About</a>
+    <a href="#services">Services</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section id="home">
+  <h2>خوش آمدید!</h2>
+  <p>میں Talha Ahmad ہوں، ایک ویب ڈویلپر جو آپ کے لئے پروفیشنل ویب سائٹس تیار کرتا ہوں۔</p>
+</section>
+
+<section id="about">
+  <h2>About Me</h2>
+  <p>میں ویب ڈویلپمنٹ، فری لانسنگ اور جدید ویب ٹیکنالوجیز میں ماہر ہوں۔</p>
+</section>
+
+<section id="services">
+  <h2>Services</h2>
+  <div class="service">
+    <h3>Website Development</h3>
+    <p>HTML, CSS, JavaScript اور WordPress ویب سائٹس بنانا۔</p>
+  </div>
+  <div class="service">
+    <h3>Logo Design</h3>
+    <p>برانڈ کے لئے پروفیشنل لوگو ڈیزائن کرنا۔</p>
+  </div>
+  <div class="service">
+    <h3>App Development</h3>
+    <p>سادہ موبائل اور ویب ایپس تیار کرنا۔</p>
+  </div>
+</section>
+
+<section id="contact">
+  <h2>Contact Me</h2>
+  <form id="contactForm">
+    <input type="text" placeholder="آپ کا نام" required>
+    <input type="email" placeholder="آپ کا ای میل" required>
+    <textarea placeholder="پیغام لکھیں" rows="5" required></textarea>
+    <button type="submit">Send</button>
+  </form>
+</section>
+
+<footer>
+  <p>&copy; 2026 Talha Ahmad – Web Developer</p>
+</footer>
+
+<script>
+  document.getElementById('contactForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    alert('پیغام بھیج دیا گیا! 😊');
+  });
+</script>
+
+</body>
+</html>
