@@ -4,30 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sher Pharmacy Register</title>
-    <script
-    // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCcvdONtjrBYGh9Eqc6cGjKd9DKL16kUak",
-  authDomain: "sher-pharmacy-talha.firebaseapp.com",
-  projectId: "sher-pharmacy-talha",
-  storageBucket: "sher-pharmacy-talha.firebasestorage.app",
-  messagingSenderId: "329524874468",
-  appId: "1:329524874468:web:6bc62a451e2aa19e3cf0f1",
-  measurementId: "G-6KGRC08EW9"
-};
+    <!-- ✅ Firebase Firestore (GitHub Pages Compatible) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-    <\script>
-    
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcvdONtjrBYGh9Eqc6cGjKd9DKL16kUak",
+            authDomain: "sher-pharmacy-talha.firebaseapp.com",
+            projectId: "sher-pharmacy-talha",
+            storageBucket: "sher-pharmacy-talha.firebasestorage.app",
+            messagingSenderId: "329524874468",
+            appId: "1:329524874468:web:6bc62a451e2aa19e3cf0f1",
+            measurementId: "G-6KGRC08EW9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.docRef = doc;
+        window.setDocRef = setDoc;
+        window.getDocRef = getDoc;
+        window.getDocsRef = getDocs;
+        window.collectionRef = collection;
+
+        console.log("✅ Firebase Firestore Connected Successfully!");
+    </script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -279,9 +284,7 @@ const analytics = getAnalytics(app);
                     <th style="width: 5%;">Action</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                <!-- Rows added by JS -->
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
@@ -320,6 +323,8 @@ const analytics = getAnalytics(app);
             <div class="row-data"><span>Order:</span> <span>Rs <span id="yOrder">0</span></span></div>
             <div class="row-data"><span>Sale:</span> <span>Rs <span id="ySale">0</span></span></div>
             <div class="row-data"><span>Baqaya:</span> <span>Rs <span id="yBaqaya">0</span></span></div>
+            <div class="row-data"><span>Electric:</span> <span>Rs <span id="yElectric">0</span></span></div>
+            <div class="row-data"><span>Phone:</span> <span>Rs <span id="yPhone">0</span></span></div>
         </div>
 
         <div class="card" id="companyCard">
@@ -342,7 +347,7 @@ const analytics = getAnalytics(app);
     function checkPass() {
         const input = document.getElementById("passInput").value;
         const correctPass = "0809";
-        
+
         if (input === correctPass) {
             document.getElementById("loginOverlay").style.display = "none";
             document.getElementById("mainContainer").style.display = "block";
@@ -353,29 +358,35 @@ const analytics = getAnalytics(app);
         }
     }
 
-    // Initialize App after login
     function initApp() {
         dateInput.value = new Date().toISOString().split("T")[0];
         load();
     }
 
-    function saveExtra() {
+    // ==============================
+    // 🔥 SAVE EXTRA (Electric / Phone)
+    // ==============================
+    async function saveExtra() {
         const e = +document.getElementById("electricBill").value || 0;
         const p = +document.getElementById("phoneBill").value || 0;
+
         document.getElementById("eTotal").innerText = e;
         document.getElementById("pTotal").innerText = p;
-        localStorage.setItem(dateInput.value + "_extra", JSON.stringify({e, p}));
-        calcMY();
+
+        await save();
+        await calcMY();
     }
 
-    function loadExtra() {
-        let ex = JSON.parse(localStorage.getItem(dateInput.value + "_extra") || '{"e":0,"p":0}');
-        document.getElementById("electricBill").value = ex.e;
-        document.getElementById("phoneBill").value = ex.p;
-        document.getElementById("eTotal").innerText = ex.e;
-        document.getElementById("pTotal").innerText = ex.p;
+    async function loadExtra(extra) {
+        document.getElementById("electricBill").value = extra?.e || 0;
+        document.getElementById("phoneBill").value = extra?.p || 0;
+        document.getElementById("eTotal").innerText = extra?.e || 0;
+        document.getElementById("pTotal").innerText = extra?.p || 0;
     }
 
+    // ==============================
+    // ADD ROW
+    // ==============================
     function addRow(d = {}) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -388,6 +399,7 @@ const analytics = getAnalytics(app);
             <td><button class="delete-btn" onclick="deleteRow(this)">❌</button></td>
         `;
         tableBody.appendChild(tr);
+
         tr.querySelectorAll("input, textarea").forEach(input => {
             input.oninput = save;
         });
@@ -400,13 +412,17 @@ const analytics = getAnalytics(app);
         }
     }
 
-    function save() {
+    // ==============================
+    // SAVE TO FIRESTORE
+    // ==============================
+    async function save() {
         let rowsData = [];
         let tBill = 0, tBaqaya = 0, tOrder = 0, tSale = 0;
 
         document.querySelectorAll("#tableBody tr").forEach(tr => {
             let inputs = tr.querySelectorAll("input, textarea");
             if (inputs.length < 6) return;
+
             let data = {
                 c: inputs[0].value,
                 b: +inputs[1].value || 0,
@@ -415,12 +431,12 @@ const analytics = getAnalytics(app);
                 op: +inputs[4].value || 0,
                 s: +inputs[5].value || 0
             };
-            
+
             tBill += data.b;
             tBaqaya += data.q;
             tOrder += data.op;
             tSale += data.s;
-            
+
             rowsData.push(data);
         });
 
@@ -429,26 +445,70 @@ const analytics = getAnalytics(app);
         document.getElementById("orderT").innerText = tOrder;
         document.getElementById("saleT").innerText = tSale;
 
-        localStorage.setItem(dateInput.value, JSON.stringify(rowsData));
-        calcMY();
+        const e = +document.getElementById("electricBill").value || 0;
+        const p = +document.getElementById("phoneBill").value || 0;
+
+        try {
+            const db = window.db;
+            const docRef = window.docRef(db, "pharmacy_register", dateInput.value);
+
+            await window.setDocRef(docRef, {
+                rows: rowsData,
+                extra: { e, p }
+            });
+
+            console.log("✅ Saved:", dateInput.value);
+        } catch (err) {
+            console.log("❌ Firestore Save Error:", err);
+            alert("❌ Firestore Save Error! Check Rules / Internet.");
+        }
+
+        await calcMY();
         filterCompany();
     }
 
-    function load() {
+    // ==============================
+    // LOAD FROM FIRESTORE
+    // ==============================
+    async function load() {
         tableBody.innerHTML = "";
-        let savedData = JSON.parse(localStorage.getItem(dateInput.value) || "[]");
-        
-        if (savedData.length === 0) {
+
+        try {
+            const db = window.db;
+            const docRef = window.docRef(db, "pharmacy_register", dateInput.value);
+            const snap = await window.getDocRef(docRef);
+
+            if (snap.exists()) {
+                const data = snap.data();
+                const savedRows = data.rows || [];
+                const extra = data.extra || { e: 0, p: 0 };
+
+                if (savedRows.length === 0) {
+                    for (let i = 0; i < 5; i++) addRow();
+                } else {
+                    savedRows.forEach(item => addRow(item));
+                }
+
+                await loadExtra(extra);
+
+            } else {
+                for (let i = 0; i < 5; i++) addRow();
+                await loadExtra({ e: 0, p: 0 });
+            }
+
+        } catch (err) {
+            console.log("❌ Firestore Load Error:", err);
+            alert("❌ Firestore Load Error! Check Rules / Internet.");
             for (let i = 0; i < 5; i++) addRow();
-        } else {
-            savedData.forEach(item => addRow(item));
         }
 
         dayName.innerText = days[new Date(dateInput.value).getDay()];
-        loadExtra();
         save();
     }
 
+    // ==============================
+    // DATE CHANGE
+    // ==============================
     function changeDay(n) {
         let d = new Date(dateInput.value);
         d.setDate(d.getDate() + n);
@@ -456,35 +516,56 @@ const analytics = getAnalytics(app);
         load();
     }
 
-    function calcMY() {
+    // ==============================
+    // MONTHLY / YEARLY SUMMARY
+    // ==============================
+    async function calcMY() {
         let mB = 0, mO = 0, mQ = 0, mS = 0, mE = 0, mP = 0;
-        let yB = 0, yO = 0, yQ = 0, yS = 0;
-        
+        let yB = 0, yO = 0, yQ = 0, yS = 0, yE = 0, yP = 0;
+
         let currentMonth = dateInput.value.slice(0, 7);
         let currentYear = dateInput.value.slice(0, 4);
 
-        Object.keys(localStorage).forEach(key => {
-            if (key.endsWith("_extra")) {
-                let dateKey = key.replace("_extra", "");
-                let ex = JSON.parse(localStorage.getItem(key));
-                if (dateKey.startsWith(currentMonth)) {
-                    mE += ex.e; mP += ex.p;
-                }
-                return;
-            }
+        try {
+            const db = window.db;
+            const colRef = window.collectionRef(db, "pharmacy_register");
+            const snap = await window.getDocsRef(colRef);
 
-            if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
-                let rows = JSON.parse(localStorage.getItem(key) || "[]");
-                rows.forEach(r => {
-                    if (key.startsWith(currentMonth)) {
-                        mB += (r.b || 0); mO += (r.op || 0); mQ += (r.q || 0); mS += (r.s || 0);
-                    }
-                    if (key.startsWith(currentYear)) {
-                        yB += (r.b || 0); yO += (r.op || 0); yQ += (r.q || 0); yS += (r.s || 0);
-                    }
-                });
-            }
-        });
+            snap.forEach(docItem => {
+                const key = docItem.id;
+                const data = docItem.data();
+
+                const rows = data.rows || [];
+                const extra = data.extra || { e: 0, p: 0 };
+
+                if (key.startsWith(currentMonth)) {
+                    mE += extra.e || 0;
+                    mP += extra.p || 0;
+
+                    rows.forEach(r => {
+                        mB += (r.b || 0);
+                        mO += (r.op || 0);
+                        mQ += (r.q || 0);
+                        mS += (r.s || 0);
+                    });
+                }
+
+                if (key.startsWith(currentYear)) {
+                    yE += extra.e || 0;
+                    yP += extra.p || 0;
+
+                    rows.forEach(r => {
+                        yB += (r.b || 0);
+                        yO += (r.op || 0);
+                        yQ += (r.q || 0);
+                        yS += (r.s || 0);
+                    });
+                }
+            });
+
+        } catch (err) {
+            console.log("❌ Summary Error:", err);
+        }
 
         document.getElementById("mBill").innerText = mB;
         document.getElementById("mOrder").innerText = mO;
@@ -497,24 +578,31 @@ const analytics = getAnalytics(app);
         document.getElementById("yOrder").innerText = yO;
         document.getElementById("yBaqaya").innerText = yQ;
         document.getElementById("ySale").innerText = yS;
+        document.getElementById("yElectric").innerText = yE;
+        document.getElementById("yPhone").innerText = yP;
     }
 
+    // ==============================
+    // COMPANY SEARCH SUMMARY
+    // ==============================
     function filterCompany() {
         let filter = document.getElementById("searchBox").value.toLowerCase();
         let cB = 0, cO = 0, cS = 0, cQ = 0;
 
         document.querySelectorAll("#tableBody tr").forEach(tr => {
-            let inputs = tr.querySelectorAll("input");
-            if(inputs.length === 0) return;
+            let inputs = tr.querySelectorAll("input, textarea");
+            if(inputs.length < 6) return;
+
             let companyName = inputs[0].value.toLowerCase();
-            
+
             if (companyName.includes(filter)) {
                 tr.style.display = "";
+
                 if (filter !== "") {
                     cB += +inputs[1].value || 0;
                     cQ += +inputs[2].value || 0;
-                    cO += +inputs[3].value || 0;
-                    cS += +inputs[4].value || 0;
+                    cO += +inputs[4].value || 0;
+                    cS += +inputs[5].value || 0;
                 }
             } else {
                 tr.style.display = "none";
@@ -525,40 +613,63 @@ const analytics = getAnalytics(app);
         document.getElementById("cOrder").innerText = cO;
         document.getElementById("cSale").innerText = cS;
         document.getElementById("cBaqaya").innerText = cQ;
-        
+
         document.getElementById("companyCard").style.borderColor = filter === "" ? "#1f3c88" : "#28a745";
     }
 
-    function exportData() {
-        const data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            data[key] = localStorage.getItem(key);
+    // ==============================
+    // EXPORT / IMPORT (Firestore Backup)
+    // ==============================
+    async function exportData() {
+        try {
+            const db = window.db;
+            const colRef = window.collectionRef(db, "pharmacy_register");
+            const snap = await window.getDocsRef(colRef);
+
+            let backup = {};
+
+            snap.forEach(d => {
+                backup[d.id] = d.data();
+            });
+
+            const blob = new Blob([JSON.stringify(backup, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `SherPharmacy_FirestoreBackup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+
+        } catch (err) {
+            alert("❌ Export failed! Check internet.");
         }
-        const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `SherPharmacy_Backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
     }
 
-    function importData(e) {
+    async function importData(e) {
         const file = e.target.files[0];
         if (!file) return;
+
         const reader = new FileReader();
-        reader.onload = function(ev) {
+        reader.onload = async function(ev) {
             try {
                 const imported = JSON.parse(ev.target.result);
-                Object.keys(imported).forEach(k => localStorage.setItem(k, imported[k]));
-                alert("Data imported successfully!");
+
+                const db = window.db;
+
+                for (const key in imported) {
+                    const docRef = window.docRef(db, "pharmacy_register", key);
+                    await window.setDocRef(docRef, imported[key]);
+                }
+
+                alert("✅ Data imported successfully!");
                 load();
+
             } catch (err) {
-                alert("Error importing file. Make sure it's a valid backup.");
+                alert("❌ Import Error! Invalid File.");
             }
         };
         reader.readAsText(file);
     }
 </script>
+
 </body>
 </html>
