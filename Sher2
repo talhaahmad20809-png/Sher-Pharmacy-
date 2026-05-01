@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sher Pharmacy Register</title>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcvdONtjrBYGh9Eqc6cGjKd9DKL16kUak",
+            authDomain: "sher-pharmacy-talha.firebaseapp.com",
+            projectId: "sher-pharmacy-talha",
+            storageBucket: "sher-pharmacy-talha.firebasestorage.app",
+            messagingSenderId: "329524874468",
+            appId: "1:329524874468:web:6bc62a451e2aa19e3cf0f1",
+            measurementId: "G-6KGRC08EW9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Make Firebase functions global for the rest of the script
+        window.db = db;
+        window.docRef = doc;
+        window.setDocRef = setDoc;
+        window.getDocRef = getDoc;
+        window.getDocsRef = getDocs;
+        window.collectionRef = collection;
+
+        console.log("✅ Firebase Firestore Connected!");
+    </script>
+
+    <style>
+        :root { --primary: #1f3c88; --secondary: #e8edff; --danger: #d9534f; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f2f2f2; padding: 10px; margin: 0; }
+        
+        /* Login Overlay */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 300px; }
+        .login-card input { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 6px; font-size: 18px; text-align: center; box-sizing: border-box; }
+
+        /* Main Container */
+        .container { display: none; background: #fff; padding: 15px; border: 2px solid var(--primary); max-width: 1100px; margin: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { text-align: center; font-size: 28px; font-weight: bold; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        
+        .top-nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .bill-bar { display: flex; flex-wrap: wrap; gap: 15px; background: var(--secondary); padding: 12px; border-radius: 5px; margin-bottom: 15px; align-items: center; justify-content: space-between; }
+        .bill-bar input { width: 100px; height: 30px; }
+
+        input, textarea { width: 100%; border: 1px solid #ccc; font-size: 13px; padding: 6px; box-sizing: border-box; border-radius: 4px; }
+        input:focus { border-color: var(--primary); outline: none; }
+
+        .tableWrap { overflow-x: auto; margin-top: 10px; border: 1px solid var(--primary); border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; min-width: 850px; }
+        th { background: var(--primary); color: white; padding: 10px; font-size: 14px; }
+        td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { padding: 15px; border: 1px solid var(--primary); background: #f9f9ff; border-radius: 8px; }
+        .card-title { font-weight: bold; color: var(--primary); border-bottom: 1px solid #ccc; margin-bottom: 10px; text-align: center; font-size: 16px; }
+        .row-data { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
+
+        .controls { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { padding: 10px 18px; font-size: 13px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        .delete-btn { background: var(--danger); padding: 5px 10px; }
+
+        #searchBox { margin: 10px 0; height: 40px; font-size: 16px; border: 2px solid var(--primary); padding-left: 10px; }
+        #saveStatus { font-size: 12px; font-style: italic; color: green; float: right; margin-top: 5px; }
+
+        @media print {
+            .controls, button, #searchBox, .top-nav, #loginOverlay { display: none !important; }
+            .container { border: none; display: block !important; width: 100%; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-card">
+        <h2>Sher Pharmacy</h2>
+        <p>Enter Password</p>
+        <input type="password" id="passInput" placeholder="****" onkeydown="if(event.key==='Enter') checkPass()">
+        <button onclick="checkPass()" style="width: 100%;">Unlock</button>
+        <p id="errorMsg" style="color: red; margin-top: 10px; display: none;">❌ Incorrect Password!</p>
+    </div>
+</div>
+
+<div class="container" id="mainContainer">
+    <div class="header">Sher Pharmacy Register</div>
+
+    <div class="top-nav">
+        <button onclick="changeDay(-1)">⏮️ Previous</button>
+        <input type="date" id="date" onchange="load()" style="width: 160px;">
+        <button onclick="changeDay(1)">Next ▶️</button>
+    </div>
+
+    <div class="bill-bar">
+        <div><strong>Day:</strong> <span id="dayName"></span></div>
+        <div><strong>Electricity:</strong> <input type="number" id="electricBill" value="0" oninput="debouncedSave()"></div>
+        <div><strong>Telephone:</strong> <input type="number" id="phoneBill" value="0" oninput="debouncedSave()"></div>
+        <a href="https://talhaahmad2087-dot.github.io/my-website/talha.html" target="_blank">Odar / Loan Panel</a>
+    </div>
+
+    <input type="text" id="searchBox" placeholder="🔍 Search Company Name..." oninput="filterCompany()">
+    <span id="saveStatus"></span>
+
+    <div class="tableWrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Company</th>
+                    <th style="width: 10%;">Bill</th>
+                    <th style="width: 10%;">Baqaya</th>
+                    <th style="width: 25%;">Order Details</th>
+                    <th style="width: 10%;">Order Pay</th>
+                    <th style="width: 10%;">Sale</th>
+                    <th style="width: 5%;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="controls">
+        <button onclick="addRow()" style="background: #28a745;">➕ Add Row</button>
+        <button onclick="exportData()">📤 Export Backup</button>
+        <input type="file" id="importFile" style="display:none;" onchange="importData(event)">
+        <button onclick="document.getElementById('importFile').click()">📥 Import Backup</button>
+        <button onclick="window.print()" style="background: #555;">🖨️ Print Report</button>
+    </div>
+
+    <div class="summary-grid">
+        <div class="card">
+            <div class="card-title">Today Summary</div>
+            <div class="row-data"><span>Total Bill:</span> <b>Rs <span id="billT">0</span></b></div>
+            <div class="row-data"><span>Order Paid:</span> <b>Rs <span id="orderT">0</span></b></div>
+            <div class="row-data"><span>Daily Sale:</span> <b>Rs <span id="saleT">0</span></b></div>
+            <div class="row-data"><span>Baqaya:</span> <b>Rs <span id="baqayaT">0</span></b></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Monthly Summary</div>
+            <div class="row-data"><span>Total Bill:</span> <b>Rs <span id="mBill">0</span></b></div>
+            <div class="row-data"><span>Order Paid:</span> <b>Rs <span id="mOrder">0</span></b></div>
+            <div class="row-data"><span>Daily Sale:</span> <b>Rs <span id="mSale">0</span></b></div>
+            <div class="row-data"><span>Baqaya:</span> <b>Rs <span id="mBaqaya">0</span></b></div>
+            <div class="row-data"><span>Utility Bills:</span> <b>Rs <span id="mUtils">0</span></b></div>
+        </div>
+
+        <div class="card" id="companyCard" style="border-width: 2px;">
+            <div class="card-title">Search Results (Live)</div>
+            <div class="row-data"><span>Company Bill:</span> <b>Rs <span id="cBill">0</span></b></div>
+            <div class="row-data"><span>Order Paid:</span> <b>Rs <span id="cOrder">0</span></b></div>
+            <div class="row-data"><span>Sale:</span> <b>Rs <span id="cSale">0</span></b></div>
+            <div class="row-data"><span>Baqaya:</span> <b>Rs <span id="cBaqaya">0</span></b></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let saveTimeout;
+    const dateInput = document.getElementById("date");
+    const dayName = document.getElementById("dayName");
+    const tableBody = document.getElementById("tableBody");
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    function checkPass() {
+        if (document.getElementById("passInput").value === "0809") {
+            document.getElementById("loginOverlay").style.display = "none";
+            document.getElementById("mainContainer").style.display = "block";
+            initApp();
+        } else {
+            document.getElementById("errorMsg").style.display = "block";
+        }
+    }
+
+    function initApp() {
+        dateInput.value = new Date().toISOString().split("T")[0];
+        load();
+    }
+
+    function addRow(d = {}) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><input type="text" class="c-name" value="${d.c || ""}" placeholder="Company"></td>
+            <td><input type="number" class="val-in" value="${d.b || ""}" placeholder="0"></td>
+            <td><input type="number" class="val-in" value="${d.q || ""}" placeholder="0"></td>
+            <td><textarea placeholder="Items details...">${d.o || ""}</textarea></td>
+            <td><input type="number" class="val-in" value="${d.op || ""}" placeholder="0"></td>
+            <td><input type="number" class="val-in" value="${d.s || ""}" placeholder="0"></td>
+            <td><button class="delete-btn" onclick="deleteRow(this)">❌</button></td>
+        `;
+        tableBody.appendChild(tr);
+        tr.querySelectorAll("input, textarea").forEach(i => i.oninput = debouncedSave);
+    }
+
+    function deleteRow(btn) {
+        if(confirm("Delete this row?")) { btn.closest("tr").remove(); save(); }
+    }
+
+    function debouncedSave() {
+        document.getElementById("saveStatus").innerText = "Typing...";
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(save, 800);
+        updateTodayTotals(); // Update UI totals immediately
+    }
+
+    async function save() {
+        let rowsData = [];
+        document.querySelectorAll("#tableBody tr").forEach(tr => {
+            let ins = tr.querySelectorAll("input, textarea");
+            if (ins.length >= 6) {
+                rowsData.push({
+                    c: ins[0].value, b: +ins[1].value || 0, q: +ins[2].value || 0,
+                    o: ins[3].value, op: +ins[4].value || 0, s: +ins[5].value || 0
+                });
+            }
+        });
+
+        const extra = { e: +document.getElementById("electricBill").value || 0, p: +document.getElementById("phoneBill").value || 0 };
+
+        try {
+            const docRef = window.docRef(window.db, "pharmacy_register", dateInput.value);
+            await window.setDocRef(docRef, { rows: rowsData, extra });
+            document.getElementById("saveStatus").innerText = "✅ Saved to Cloud";
+            calcSummary();
+        } catch (e) {
+            console.error(e);
+            document.getElementById("saveStatus").innerText = "❌ Save Error";
+        }
+    }
+
+    async function load() {
+        tableBody.innerHTML = "";
+        dayName.innerText = days[new Date(dateInput.value).getDay()];
+        
+        try {
+            const docRef = window.docRef(window.db, "pharmacy_register", dateInput.value);
+            const snap = await window.getDocRef(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                data.rows.forEach(r => addRow(r));
+                document.getElementById("electricBill").value = data.extra?.e || 0;
+                document.getElementById("phoneBill").value = data.extra?.p || 0;
+            } else {
+                for (let i = 0; i < 5; i++) addRow();
+            }
+        } catch (e) { console.error(e); }
+        updateTodayTotals();
+        calcSummary();
+    }
+
+    function updateTodayTotals() {
+        let b = 0, q = 0, op = 0, s = 0;
+        document.querySelectorAll("#tableBody tr").forEach(tr => {
+            let ins = tr.querySelectorAll("input");
+            b += +ins[1].value || 0;
+            q += +ins[2].value || 0;
+            op += +ins[3].value || 0; // index shifted because textarea is in middle
+            s += +ins[4].value || 0;
+        });
+        document.getElementById("billT").innerText = b;
+        document.getElementById("baqayaT").innerText = q;
+        document.getElementById("orderT").innerText = op;
+        document.getElementById("saleT").innerText = s;
+        filterCompany(); // Also update search results if active
+    }
+
+    async function calcSummary() {
+        let mB = 0, mO = 0, mQ = 0, mS = 0, mU = 0;
+        let monthKey = dateInput.value.slice(0, 7);
+
+        const colRef = window.collectionRef(window.db, "pharmacy_register");
+        const snap = await window.getDocsRef(colRef);
+
+        snap.forEach(d => {
+            if (d.id.startsWith(monthKey)) {
+                const data = d.data();
+                mU += (data.extra?.e || 0) + (data.extra?.p || 0);
+                data.rows.forEach(r => {
+                    mB += r.b; mO += r.op; mQ += r.q; mS += r.s;
+                });
+            }
+        });
+
+        document.getElementById("mBill").innerText = mB;
+        document.getElementById("mOrder").innerText = mO;
+        document.getElementById("mBaqaya").innerText = mQ;
+        document.getElementById("mSale").innerText = mS;
+        document.getElementById("mUtils").innerText = mU;
+    }
+
+    function filterCompany() {
+        let query = document.getElementById("searchBox").value.toLowerCase();
+        let b = 0, q = 0, op = 0, s = 0;
+
+        document.querySelectorAll("#tableBody tr").forEach(tr => {
+            let name = tr.querySelector(".c-name").value.toLowerCase();
+            if (name.includes(query)) {
+                tr.style.display = "";
+                if (query !== "") {
+                    let ins = tr.querySelectorAll("input");
+                    b += +ins[1].value || 0;
+                    q += +ins[2].value || 0;
+                    op += +ins[3].value || 0;
+                    s += +ins[4].value || 0;
+                }
+            } else {
+                tr.style.display = "none";
+            }
+        });
+        document.getElementById("cBill").innerText = b;
+        document.getElementById("cBaqaya").innerText = q;
+        document.getElementById("cOrder").innerText = op;
+        document.getElementById("cSale").innerText = s;
+    }
+
+    function changeDay(n) {
+        let d = new Date(dateInput.value);
+        d.setDate(d.getDate() + n);
+        dateInput.value = d.toISOString().split("T")[0];
+        load();
+    }
+
+    async function exportData() {
+        const snap = await window.getDocsRef(window.collectionRef(window.db, "pharmacy_register"));
+        let backup = {};
+        snap.forEach(d => backup[d.id] = d.data());
+        const blob = new Blob([JSON.stringify(backup)], {type: "application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `Pharmacy_Backup_${dateInput.value}.json`;
+        a.click();
+    }
+
+    async function importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const data = JSON.parse(ev.target.result);
+            for (let key in data) {
+                await window.setDocRef(window.docRef(window.db, "pharmacy_register", key), data[key]);
+            }
+            alert("Import Finished!"); load();
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>
