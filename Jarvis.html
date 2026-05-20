@@ -1,446 +1,947 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>J.A.R.V.I.S. — Voice Assistant</title>
+  <title>TA — 3D Circuit Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --cyan: #00f5ff;
+      --cyan2: #00bcd4;
+      --cyan-dim: rgba(0,245,255,0.10);
+      --cyan-glow: 0 0 10px #00f5ff, 0 0 30px rgba(0,245,255,0.4);
+      --pink: #ff2d78;
+      --yellow: #ffd600;
+      --green: #39ff14;
+      --bg: #020810;
+      --panel: rgba(2,12,28,0.82);
+      --border: rgba(0,245,255,0.22);
+      --text: #c8f0ff;
+      --muted: rgba(0,200,255,0.45);
     }
+    * { margin:0; padding:0; box-sizing:border-box; }
 
     body {
-      background: radial-gradient(circle at 30% 20%, #0a0f1e, #02060c);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Three.js canvas fills background */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Scanline overlay */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* Moving scan beam */
+    .scan-beam {
+      position: fixed;
+      left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0,245,255,0.4) 50%, transparent 100%);
+      z-index: 2;
+      pointer-events: none;
+      animation: beamDown 7s linear infinite;
+    }
+    @keyframes beamDown {
+      0% { top: -3px; opacity: 0; }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { top: 100vh; opacity: 0; }
+    }
+
+    /* Main layout */
+    .layout {
+      position: relative;
+      z-index: 10;
       min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
-      padding: 20px;
+      align-items: flex-start;
+      padding: 16px 12px 50px;
     }
 
     .card {
-      max-width: 480px;
+      max-width: 460px;
       width: 100%;
-      background: rgba(8, 18, 28, 0.7);
-      backdrop-filter: blur(20px);
-      border-radius: 56px;
-      border: 1px solid rgba(0, 180, 255, 0.35);
-      padding: 28px 22px 36px;
-      box-shadow: 0 25px 45px rgba(0,0,0,0.6);
+      margin-top: 8px;
     }
 
-    h1 {
-      text-align: center;
-      font-size: 2.4rem;
-      background: linear-gradient(135deg, #fff, #3b82f6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      letter-spacing: 2px;
+    /* HUD Panel */
+    .hud-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,245,255,0.08), inset 0 0 60px rgba(0,20,50,0.5);
     }
 
-    .sub {
-      text-align: center;
-      color: #7aaae0;
-      font-size: 0.7rem;
-      margin-top: 6px;
+    /* Corner brackets */
+    .corner { position: absolute; width: 18px; height: 18px; z-index: 5; }
+    .corner.tl { top: 0; left: 0; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner.tr { top: 0; right: 0; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+    .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+    /* Top bar */
+    .top-bar {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), var(--cyan), transparent);
+      animation: barFlow 3s linear infinite;
+      background-size: 200% 100%;
+    }
+    @keyframes barFlow {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 200% 0%; }
     }
 
-    .mic-wrapper {
+    /* 3D Canvas inside card — the centerpiece */
+    #model-canvas {
+      width: 100%;
+      height: 220px;
+      display: block;
+      cursor: grab;
+    }
+    #model-canvas:active { cursor: grabbing; }
+
+    /* Header overlay on canvas */
+    .canvas-overlay {
+      position: absolute;
+      top: 2px;
+      left: 0; right: 0;
+      height: 220px;
+      pointer-events: none;
       display: flex;
-      justify-content: center;
-      margin: 35px 0 25px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 14px;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: var(--cyan);
+      letter-spacing: 12px;
+      text-shadow: var(--cyan-glow), 0 0 60px rgba(0,245,255,0.3);
+      line-height: 1;
+    }
+    .tagline {
+      color: rgba(0,245,255,0.5);
+      font-size: 0.52rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .sys-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .badge {
+      font-size: 0.5rem;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+    .badge.on { color: var(--green); border: 1px solid rgba(57,255,20,0.35); animation: blink 2s infinite; }
+    .badge.ai { color: var(--cyan); border: 1px solid var(--border); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Canvas position wrapper */
+    .canvas-wrap {
       position: relative;
     }
 
-    .mic-btn {
-      width: 130px;
-      height: 130px;
-      background: linear-gradient(145deg, #0e1a2a, #030a14);
-      border-radius: 50%;
+    /* Body content */
+    .body-content {
+      padding: 14px 16px 0;
+    }
+
+    /* Lang toggle */
+    .lang-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 5px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      text-transform: uppercase;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--cyan-dim);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      text-shadow: 0 0 8px var(--cyan);
+    }
+
+    /* Mic */
+    .mic-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .mic-outer {
+      position: relative;
+      width: 86px; height: 86px;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      border: 2px solid #0af;
-      box-shadow: 0 0 20px rgba(0,170,255,0.4);
-      transition: 0.08s linear;
-      z-index: 2;
     }
-
-    .mic-btn:active {
-      transform: scale(0.94);
-    }
-
-    .mic-icon {
-      font-size: 56px;
-      color: #b3ecff;
-    }
-
-    .listening .mic-icon {
-      color: #2eff9e;
-      text-shadow: 0 0 12px #0f6;
-    }
-
-    .pulse-ring {
+    .ring {
       position: absolute;
-      width: 130px;
-      height: 130px;
       border-radius: 50%;
-      background: rgba(0,255,180,0.1);
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
+      border: 1px solid transparent;
     }
+    .r1 { inset: 0; border-color: rgba(0,245,255,0.18); animation: rr1 5s linear infinite; }
+    .r2 { inset: 7px; border-top-color: var(--cyan); border-color: rgba(0,245,255,0.1); animation: rr2 3s linear infinite; }
+    .r3 { inset: 14px; border-bottom-color: rgba(0,245,255,0.5); border-color: rgba(0,245,255,0.08); animation: rr3 4s linear infinite reverse; }
+    .r4 { inset: 21px; border-left-color: var(--pink); border-color: transparent; animation: rr1 6s linear infinite; opacity: 0.5; }
+    @keyframes rr1 { to { transform: rotate(360deg); } }
+    @keyframes rr2 { to { transform: rotate(-360deg); } }
+    @keyframes rr3 { to { transform: rotate(360deg); } }
 
-    .listening .pulse-ring {
-      animation: pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: translateX(-50%) scale(1); opacity: 0.6; }
-      100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
-    }
-
-    .status-row {
+    .mic-btn {
+      width: 52px; height: 52px;
+      background: radial-gradient(circle, #001e38, #000f1e);
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin: 15px 0 12px;
-      color: #7bb3ff;
-      font-size: 0.85rem;
-    }
-
-    .led {
-      width: 10px;
-      height: 10px;
-      background: #3b82f6;
-      border-radius: 50%;
-      box-shadow: 0 0 6px #3b82f6;
-    }
-
-    .led-active {
-      background: #2eff9e;
-      box-shadow: 0 0 12px #2eff9e;
-      animation: blink 0.9s infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
-    }
-
-    .bubble {
-      background: rgba(0, 0, 0, 0.55);
-      padding: 14px 18px;
-      border-radius: 28px;
-      margin: 10px 0;
-      color: #eef5ff;
-      border-left: 3px solid #3b82f6;
-      word-break: break-word;
-      line-height: 1.45;
-    }
-
-    .resp-bubble {
-      border-left-color: #2dd4bf;
-    }
-
-    .small-label {
-      font-size: 0.7rem;
-      color: #9ab0d0;
-      margin-top: 12px;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
       justify-content: center;
-      margin: 20px 0 10px;
-    }
-
-    .chip {
-      background: rgba(30, 55, 90, 0.7);
-      padding: 6px 14px;
-      border-radius: 30px;
-      font-size: 0.75rem;
-      color: #cae3ff;
-      border: 0.5px solid #3b82f6;
       cursor: pointer;
+      z-index: 2;
+      box-shadow: var(--cyan-glow), inset 0 0 16px rgba(0,245,255,0.07);
+      transition: all 0.2s;
+      font-size: 22px;
     }
-
-    .chip:active {
-      background: #2c5a8c;
-      transform: scale(0.96);
+    .mic-btn:hover { transform: scale(1.08); box-shadow: 0 0 20px var(--cyan), 0 0 50px rgba(0,245,255,0.5); }
+    .mic-btn.listening { animation: micPulse 1s ease-in-out infinite; }
+    @keyframes micPulse {
+      0%,100% { box-shadow: 0 0 12px var(--cyan), 0 0 30px rgba(0,245,255,0.4); }
+      50% { box-shadow: 0 0 25px var(--cyan), 0 0 70px rgba(0,245,255,0.7); }
     }
+    .status-text {
+      margin-top: 8px;
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .status-text.active { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
 
-    footer {
-      text-align: center;
-      font-size: 0.55rem;
-      color: #335588;
-      margin-top: 20px;
+    /* Input */
+    .input-wrap {
+      display: flex;
+      gap: 6px;
+      background: rgba(0,10,25,0.7);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 7px;
+      align-items: center;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-wrap:focus-within { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,245,255,0.15); }
+    .input-prefix { color: var(--cyan); font-size: 0.8rem; flex-shrink: 0; }
+    .input-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.83rem;
+      caret-color: var(--cyan);
+    }
+    .input-wrap input::placeholder { color: var(--muted); }
+    .send-btn {
+      background: var(--cyan);
+      border: none;
+      width: 30px; height: 30px;
+      border-radius: 2px;
+      color: #000;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .send-btn:hover { background: #fff; box-shadow: var(--cyan-glow); }
+
+    /* Response */
+    .panel-label {
+      font-size: 0.52rem;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .panel-label::before { content: ''; display: block; width: 16px; height: 1px; background: var(--cyan); opacity: 0.4; }
+    .dot-ind {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--green);
+    }
+    .dot-ind.thinking { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: blink 0.5s infinite; }
+
+    .response-box {
+      background: rgba(0,8,20,0.75);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px 14px;
+      min-height: 80px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .response-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--cyan), transparent);
+      opacity: 0.4;
+    }
+    .typing-dots { display: none; gap: 5px; padding: 4px 0; }
+    .typing-dots.show { display: flex; }
+    .typing-dots span {
+      width: 5px; height: 5px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: db 1s ease-in-out infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes db { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-6px);opacity:1} }
+    .response-text { color: var(--text); font-size: 0.84rem; line-height: 1.75; word-break: break-word; }
+    .response-text.urdu-text { direction: rtl; text-align: right; }
+    .response-text a { color: var(--cyan); }
+    .speak-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; padding: 3px 10px;
+      background: transparent; border: 1px solid rgba(57,255,20,0.3);
+      color: var(--green); font-family: 'Share Tech Mono', monospace;
+      font-size: 0.57rem; letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
+    }
+    .speak-btn:hover { background: rgba(57,255,20,0.1); }
+
+    /* Chips */
+    .section-hdr {
+      font-size: 0.5rem; letter-spacing: 3px; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 7px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-hdr::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+    .chip {
+      background: transparent; padding: 4px 10px;
+      border: 1px solid var(--border); border-radius: 2px;
+      font-size: 0.58rem; font-family: 'Share Tech Mono', monospace;
+      color: var(--muted); cursor: pointer; letter-spacing: 0.5px; transition: all 0.15s;
+    }
+    .chip:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); text-shadow: 0 0 6px var(--cyan); }
+
+    /* App grid */
+    .app-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 16px; }
+    .app-btn {
+      background: rgba(0,12,28,0.7); border: 1px solid var(--border);
+      border-radius: 3px; padding: 8px 4px; text-align: center;
+      cursor: pointer; transition: all 0.2s; color: var(--muted);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .app-btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); box-shadow: inset 0 0 20px rgba(0,245,255,0.06); }
+    .app-icon { font-size: 17px; display: block; margin-bottom: 4px; }
+
+    .h-div { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin-bottom: 12px; }
+
+    .bottom-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0 14px;
+      font-size: 0.48rem; color: rgba(0,200,255,0.2); letter-spacing: 1px; text-transform: uppercase;
     }
   </style>
 </head>
 <body>
 
+<!-- Full-screen 3D background -->
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="scan-beam"></div>
+
+<div class="layout">
 <div class="card">
-  <h1>J.A.R.V.I.S.</h1>
-  <div class="sub">Just A Rather Very Intelligent System</div>
+<div class="hud-panel">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="top-bar"></div>
 
-  <div class="mic-wrapper">
-    <div class="pulse-ring" id="pulseRing"></div>
-    <button class="mic-btn" id="micBtn">
-      <span class="mic-icon" id="micIcon">🎙️</span>
-    </button>
+  <!-- 3D Model Canvas (inside card) -->
+  <div class="canvas-wrap">
+    <canvas id="model-canvas"></canvas>
+    <div class="canvas-overlay">
+      <div class="logo">TA</div>
+      <div class="tagline">3D CIRCUIT INTELLIGENCE</div>
+      <div class="sys-row">
+        <span class="badge on">● ONLINE</span>
+        <span class="badge ai">CLAUDE AI</span>
+        <span class="badge ai">3D v3.0</span>
+      </div>
+    </div>
   </div>
 
-  <div class="status-row">
-    <span class="led" id="statusLed"></span>
-    <span id="statusText">STANDBY</span>
+  <div class="body-content">
+
+    <!-- Lang -->
+    <div class="lang-row">
+      <button class="lang-btn active" data-lang="urdu">اردو</button>
+      <button class="lang-btn" data-lang="hindi">हिंदी</button>
+      <button class="lang-btn" data-lang="english">ENG</button>
+    </div>
+
+    <!-- Mic -->
+    <div class="mic-section">
+      <div class="mic-outer">
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="ring r4"></div>
+        <button class="mic-btn" id="micBtn">🎤</button>
+      </div>
+      <div class="status-text" id="statusText">SYS_READY · MIC DABAYEIN</div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-wrap">
+      <span class="input-prefix">&gt;_</span>
+      <input type="text" id="questionInput" placeholder="QUERY INPUT...">
+      <button class="send-btn" id="askBtn">GO</button>
+    </div>
+
+    <!-- Response -->
+    <div class="panel-label">
+      <span class="dot-ind" id="dotInd"></span>
+      OUTPUT · TA RESPONSE
+    </div>
+    <div class="response-box">
+      <div class="typing-dots" id="typingDots"><span></span><span></span><span></span></div>
+      <div class="response-text" id="answerText">SYSTEM ONLINE. MIC DABAYEIN YA QUERY LIKHEIN.</div>
+      <div id="speakWrap"></div>
+    </div>
+
+    <!-- Chips -->
+    <div class="section-hdr">QUICK QUERIES</div>
+    <div class="chips">
+      <div class="chip" data-q="Abhi time kya hai?">⏱ TIME</div>
+      <div class="chip" data-q="Aaj ki tarikh?">📅 DATE</div>
+      <div class="chip" data-q="Ek mazedaar joke sunao">💀 JOKE</div>
+      <div class="chip" data-q="Pakistan ka capital?">🌍 CAP</div>
+      <div class="chip" data-q="Motivational quote do">⚡ QUOTE</div>
+      <div class="chip" data-q="AI kya hoti hai?">🤖 AI</div>
+    </div>
+
+    <div class="h-div"></div>
+
+    <!-- Apps -->
+    <div class="section-hdr">APP ACCESS</div>
+    <div class="app-grid">
+      <div class="app-btn" data-app="whatsapp"><span class="app-icon">💬</span>WHATSAPP</div>
+      <div class="app-btn" data-app="instagram"><span class="app-icon">📸</span>INSTAGRAM</div>
+      <div class="app-btn" data-app="youtube"><span class="app-icon">▶️</span>YOUTUBE</div>
+      <div class="app-btn" data-app="chrome"><span class="app-icon">🌐</span>CHROME</div>
+      <div class="app-btn" data-app="settings"><span class="app-icon">⚙️</span>SETTINGS</div>
+      <div class="app-btn" data-app="camera"><span class="app-icon">📷</span>CAMERA</div>
+    </div>
+
+    <div class="bottom-bar">
+      <span>TA · 3D CIRCUIT INTELLIGENCE</span>
+      <span>BUILD 2025.05</span>
+    </div>
+
   </div>
-
-  <div class="small-label">➤ YOU SAID</div>
-  <div class="bubble" id="transcriptEl">—</div>
-
-  <div class="small-label">⟡ JARVIS REPLIES</div>
-  <div class="bubble resp-bubble" id="responseEl">Tap the mic and speak. I answer everything in order.</div>
-
-  <div class="chips">
-    <div class="chip" data-command="time">🕒 Time</div>
-    <div class="chip" data-command="date">📅 Date</div>
-    <div class="chip" data-command="joke">😂 Joke</div>
-    <div class="chip" data-command="calc 8*4">🧮 8×4</div>
-    <div class="chip" data-command="hello">👋 Greeting</div>
-    <div class="chip" data-command="weather">☁️ Weather</div>
-  </div>
-  <footer>Tap mic → speak → JARVIS answers in correct order, every time.</footer>
+</div>
+</div>
 </div>
 
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-  (function() {
-    // Elements
-    const micBtn = document.getElementById('micBtn');
-    const micIconSpan = document.getElementById('micIcon');
-    const transcriptEl = document.getElementById('transcriptEl');
-    const responseEl = document.getElementById('responseEl');
-    const statusTextSpan = document.getElementById('statusText');
-    const statusLed = document.getElementById('statusLed');
-    const card = document.querySelector('.card');
+// ==================== 3D BACKGROUND SCENE ====================
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
 
-    // Speech recognition
-    const SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-    let isListening = false;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 18;
 
-    const synth = window.speechSynthesis;
-    let ttsSupported = true;
+  // Particle field
+  const particleCount = 600;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(particleCount * 3);
+  const pColors = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    pPos[i*3]   = (Math.random() - 0.5) * 60;
+    pPos[i*3+1] = (Math.random() - 0.5) * 60;
+    pPos[i*3+2] = (Math.random() - 0.5) * 40;
+    const t = Math.random();
+    if (t < 0.6) { pColors[i*3]=0; pColors[i*3+1]=0.9; pColors[i*3+2]=1; }
+    else if (t < 0.8) { pColors[i*3]=1; pColors[i*3+1]=0.18; pColors[i*3+2]=0.47; }
+    else { pColors[i*3]=0.22; pColors[i*3+1]=1; pColors[i*3+2]=0.08; }
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  pGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+  const pMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, opacity: 0.7 });
+  scene.add(new THREE.Points(pGeo, pMat));
 
-    if (!SpeechRecog) {
-      statusTextSpan.innerText = "VOICE NOT SUPPORTED";
-      micBtn.style.opacity = "0.5";
-      micBtn.disabled = true;
-    } else {
-      recognition = new SpeechRecog();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+  // Grid lines (circuit traces)
+  function addLine(pts, color, opacity=0.15) {
+    const geo = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(...p)));
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    scene.add(new THREE.Line(geo, mat));
+  }
+  for (let i = -15; i <= 15; i += 5) {
+    addLine([[-20,i,-5],[20,i,-5]], 0x00f5ff, 0.06);
+    addLine([[i,-20,-5],[i,20,-5]], 0x00f5ff, 0.06);
+  }
+
+  // Floating circuit rings (far background)
+  function makeRing(r, tilt, y, color, opacity) {
+    const geo = new THREE.TorusGeometry(r, 0.02, 8, 80);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, wireframe: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = tilt;
+    mesh.position.y = y;
+    mesh.position.z = -6;
+    scene.add(mesh);
+    return mesh;
+  }
+  const bgRings = [
+    makeRing(7, 0.4, 0, 0x00f5ff, 0.12),
+    makeRing(9, -0.3, 2, 0xff2d78, 0.07),
+    makeRing(11, 0.6, -1, 0x00f5ff, 0.05),
+  ];
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  let bgT = 0;
+  function animateBg() {
+    requestAnimationFrame(animateBg);
+    bgT += 0.004;
+    bgRings.forEach((r, i) => { r.rotation.z = bgT * (0.3 + i * 0.1); });
+    const pos = pGeo.attributes.position.array;
+    for (let i = 0; i < particleCount; i++) {
+      pos[i*3+1] -= 0.005;
+      if (pos[i*3+1] < -30) pos[i*3+1] = 30;
     }
+    pGeo.attributes.position.needsUpdate = true;
+    renderer.render(scene, camera);
+  }
+  animateBg();
+})();
 
-    // ========== INTELLIGENT RESPONSE (ANSWERS EVERYTHING IN ORDER) ==========
-    function getResponse(userText) {
-      if (!userText || userText.trim() === "") {
-        return "I didn't hear anything, sir. Please speak again.";
-      }
+// ==================== 3D MODEL INSIDE CARD ====================
+(function() {
+  const canvas = document.getElementById('model-canvas');
+  const W = canvas.parentElement.clientWidth;
+  const H = 220;
+  canvas.width = W;
+  canvas.height = H;
 
-      const txt = userText.toLowerCase().trim();
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x000000, 0);
 
-      // 1. TIME
-      if (txt.includes('time') || txt === 'what time is it' || txt.includes('current time')) {
-        const now = new Date();
-        let hours = now.getHours();
-        const mins = now.getMinutes().toString().padStart(2,'0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        return `The current time is ${hours}:${mins} ${ampm}.`;
-      }
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 100);
+  camera.position.z = 5;
 
-      // 2. DATE
-      if (txt.includes('date') || txt.includes("today's date")) {
-        const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return `Today is ${now.toLocaleDateString('en-US', options)}.`;
-      }
+  // Lights
+  scene.add(new THREE.AmbientLight(0x001a2e, 1));
+  const cLight = new THREE.PointLight(0x00f5ff, 3, 20);
+  cLight.position.set(0, 0, 4);
+  scene.add(cLight);
+  const pLight = new THREE.PointLight(0xff2d78, 1.5, 15);
+  pLight.position.set(-3, 2, 2);
+  scene.add(pLight);
 
-      // 3. JOKE
-      if (txt.includes('joke') || txt.includes('funny')) {
-        const jokes = [
-          "Why don't scientists trust atoms? Because they make up everything!",
-          "What do you call a fake noodle? An impasta.",
-          "Why did the scarecrow win an award? He was outstanding in his field.",
-          "I told my computer I needed a break, and now it won't stop sending me vacation ads."
-        ];
-        return jokes[Math.floor(Math.random() * jokes.length)];
-      }
+  // Central CPU chip (box)
+  const cpuGeo = new THREE.BoxGeometry(1.0, 0.12, 1.0);
+  const cpuMat = new THREE.MeshStandardMaterial({
+    color: 0x001428,
+    emissive: 0x00f5ff,
+    emissiveIntensity: 0.4,
+    metalness: 0.9,
+    roughness: 0.2,
+  });
+  const cpu = new THREE.Mesh(cpuGeo, cpuMat);
+  scene.add(cpu);
 
-      // 4. CALCULATION (simple math)
-      const mathMatch = txt.match(/(\d+)\s*([+\-*\/])\s*(\d+)/);
-      if (mathMatch || txt.includes('plus') || txt.includes('minus') || txt.includes('times') || txt.includes('divided by')) {
-        let expr = txt.replace(/plus/g, '+').replace(/minus/g, '-').replace(/times/g, '*').replace(/divided by/g, '/');
-        const match = expr.match(/(\d+)\s*([+\-*\/])\s*(\d+)/);
-        if (match) {
-          const a = parseFloat(match[1]);
-          const op = match[2];
-          const b = parseFloat(match[3]);
-          let res;
-          if (op === '+') res = a + b;
-          else if (op === '-') res = a - b;
-          else if (op === '*') res = a * b;
-          else if (op === '/') res = b !== 0 ? (a / b).toFixed(2) : "undefined (divide by zero)";
-          else res = "cannot compute";
-          return `The result of ${a} ${op} ${b} is ${res}.`;
-        }
-        return "Sir, please say something like '5 plus 3' or '10 divided by 2'.";
-      }
+  // CPU pins
+  const pinMat = new THREE.MeshStandardMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 0.6 });
+  for (let i = -3; i <= 3; i++) {
+    for (const side of [-1, 1]) {
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), pinMat);
+      pin.position.set(i * 0.13, -0.15, side * 0.45);
+      pin.rotation.x = Math.PI / 2;
+      scene.add(pin);
 
-      // 5. WEATHER (mock)
-      if (txt.includes('weather') || txt.includes('temperature')) {
-        return "According to my sensors, it's 74°F and partly cloudy. For accurate forecasts, check a weather app, sir.";
-      }
-
-      // 6. GREETING
-      if (txt.match(/hello|hi jarvis|hey jarvis|good morning|good evening/)) {
-        return "Hello, sir. J.A.R.V.I.S. ready. How may I assist you today?";
-      }
-
-      // 7. GENERAL KNOWLEDGE / ANY QUESTION
-      if (txt.includes('what is') || txt.includes('who is') || txt.includes('tell me about') || txt.includes('explain')) {
-        let query = encodeURIComponent(userText.substring(0, 80));
-        return `I can help you search for "${userText.substring(0, 60)}". For a full answer, you can open: https://google.com/search?q=${query} — but in short: I'm designed to answer every question in order. Please ask clearly.`;
-      }
-
-      // 8. BATH / CAROL / RANDOM STUFF — handled with humor but no nonsense
-      if (txt.includes('bath') || txt.includes('carol') || txt.includes('mojo')) {
-        return "I understand, sir. No random baths or Carols. Everything is in proper order with full mojo. How else can I help?";
-      }
-
-      // 9. FALLBACK — answers EVERYTHING, never empty
-      return `I heard: "${userText}". I am J.A.R.V.I.S., and I answer every question in correct order. You can ask for time, date, jokes, math, or general info.`;
+      const pin2 = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), pinMat);
+      pin2.position.set(side * 0.45, -0.15, i * 0.13);
+      pin2.rotation.z = Math.PI / 2;
+      scene.add(pin2);
     }
+  }
 
-    // Speak + update UI
-    function speakAndUpdate(text, isResponse = true) {
-      if (isResponse) {
-        responseEl.innerText = text;
-      }
-      if (ttsSupported && synth && text) {
-        synth.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.95;
-        synth.speak(utterance);
-      }
+  // Orbiting sphere (main)
+  const sphereGeo = new THREE.SphereGeometry(1.8, 32, 32);
+  const sphereMat = new THREE.MeshStandardMaterial({
+    color: 0x002030,
+    emissive: 0x001520,
+    metalness: 0.5,
+    roughness: 0.8,
+    wireframe: false,
+    transparent: true,
+    opacity: 0.0,
+  });
+  const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+  scene.add(sphere);
+
+  // Wireframe sphere overlay
+  const wfGeo = new THREE.SphereGeometry(1.8, 18, 12);
+  const wfMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff, wireframe: true, transparent: true, opacity: 0.08 });
+  const wfSphere = new THREE.Mesh(wfGeo, wfMat);
+  scene.add(wfSphere);
+
+  // Torus rings around sphere
+  function makeTorus(rx, ry, rz, color, opacity, thick=0.012) {
+    const geo = new THREE.TorusGeometry(1.8, thick, 8, 100);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
+    const m = new THREE.Mesh(geo, mat);
+    m.rotation.set(rx, ry, rz);
+    scene.add(m);
+    return m;
+  }
+  const torus1 = makeTorus(Math.PI/2, 0, 0, 0x00f5ff, 0.9, 0.015);
+  const torus2 = makeTorus(Math.PI/4, Math.PI/6, 0, 0xff2d78, 0.6, 0.01);
+  const torus3 = makeTorus(-Math.PI/3, Math.PI/4, Math.PI/5, 0x00f5ff, 0.4, 0.008);
+
+  // Orbiting nodes on torus1
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff });
+  const nodes = [];
+  for (let i = 0; i < 6; i++) {
+    const n = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), nodeMat);
+    scene.add(n);
+    nodes.push({ mesh: n, angle: (i / 6) * Math.PI * 2, ring: torus1 });
+  }
+
+  // Orbiting nodes on torus2
+  const nodeMat2 = new THREE.MeshBasicMaterial({ color: 0xff2d78 });
+  for (let i = 0; i < 4; i++) {
+    const n = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), nodeMat2);
+    scene.add(n);
+    nodes.push({ mesh: n, angle: (i / 4) * Math.PI * 2, ring: torus2, speed: 0.7 });
+  }
+
+  // Circuit trace lines from center
+  const traceMat = new THREE.LineBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0.4 });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const r = 1.8;
+    const pts = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, (Math.random()-0.5)*0.4),
+      new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r * 0.8, 0),
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    scene.add(new THREE.Line(geo, traceMat));
+  }
+
+  // Outer ring (large)
+  const outerTorus = new THREE.Mesh(
+    new THREE.TorusGeometry(2.4, 0.008, 6, 120),
+    new THREE.MeshBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0.25 })
+  );
+  outerTorus.rotation.x = 0.3;
+  scene.add(outerTorus);
+
+  // Floating particles around model
+  const mpGeo = new THREE.BufferGeometry();
+  const mpPos = new Float32Array(200 * 3);
+  for (let i = 0; i < 200; i++) {
+    const phi = Math.random() * Math.PI * 2;
+    const theta = Math.random() * Math.PI;
+    const r = 2.0 + Math.random() * 1.5;
+    mpPos[i*3]   = r * Math.sin(theta) * Math.cos(phi);
+    mpPos[i*3+1] = r * Math.sin(theta) * Math.sin(phi);
+    mpPos[i*3+2] = r * Math.cos(theta);
+  }
+  mpGeo.setAttribute('position', new THREE.BufferAttribute(mpPos, 3));
+  const mpMat = new THREE.PointsMaterial({ size: 0.04, color: 0x00f5ff, transparent: true, opacity: 0.6 });
+  scene.add(new THREE.Points(mpGeo, mpMat));
+
+  // Mouse drag
+  let isDragging = false, lastX = 0, lastY = 0;
+  let rotX = 0, rotY = 0;
+  canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+  canvas.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; });
+  window.addEventListener('mouseup', () => isDragging = false);
+  window.addEventListener('touchend', () => isDragging = false);
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    rotY += (e.clientX - lastX) * 0.008;
+    rotX += (e.clientY - lastY) * 0.008;
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  window.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    rotY += (e.touches[0].clientX - lastX) * 0.008;
+    rotX += (e.touches[0].clientY - lastY) * 0.008;
+    lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  });
+
+  let t = 0;
+  function animateModel() {
+    requestAnimationFrame(animateModel);
+    t += 0.01;
+
+    // Auto rotate
+    const group = [sphere, wfSphere, torus1, torus2, torus3, outerTorus];
+    if (!isDragging) {
+      rotY += 0.004;
+      rotX += 0.001;
     }
+    group.forEach(m => {
+      m.rotation.y = rotY;
+      m.rotation.x = rotX;
+    });
+    cpu.rotation.y = rotY;
 
-    function handleCommand(spoken) {
-      transcriptEl.innerText = `"${spoken}"`;
-      const answer = getResponse(spoken);
-      speakAndUpdate(answer, true);
-    }
-
-    // Listening state
-    function setListening(state) {
-      isListening = state;
-      if (state) {
-        card.classList.add('listening');
-        micIconSpan.innerHTML = '🎤';
-        statusTextSpan.innerText = 'LISTENING...';
-        statusLed.classList.add('led-active');
-        if (recognition) {
-          try {
-            recognition.start();
-          } catch(e) {
-            setListening(false);
-            responseEl.innerText = "Mic error. Tap again.";
-          }
-        }
-      } else {
-        card.classList.remove('listening');
-        micIconSpan.innerHTML = '🎙️';
-        statusTextSpan.innerText = 'STANDBY';
-        statusLed.classList.remove('led-active');
-        if (recognition) {
-          try {
-            recognition.abort();
-          } catch(e) {}
-        }
-      }
-    }
-
-    // Recognition events
-    if (recognition) {
-      recognition.onstart = () => {};
-      recognition.onend = () => {
-        if (isListening) setListening(false);
-      };
-      recognition.onerror = (e) => {
-        setListening(false);
-        responseEl.innerText = "Voice error. Please tap mic again.";
-      };
-      recognition.onresult = (event) => {
-        const last = event.results.length - 1;
-        const spoken = event.results[last][0].transcript;
-        if (spoken && spoken.trim()) {
-          handleCommand(spoken);
-        } else {
-          responseEl.innerText = "I didn't catch that, sir.";
-        }
-        setListening(false);
-      };
-    }
-
-    micBtn.addEventListener('click', () => {
-      if (!recognition) {
-        responseEl.innerText = "Voice not supported on this browser.";
-        return;
-      }
-      if (isListening) {
-        setListening(false);
-        setTimeout(() => setListening(true), 80);
-      } else {
-        setListening(true);
-      }
+    // Orbit nodes
+    nodes.forEach((n, i) => {
+      n.angle += (n.speed || 1.0) * 0.018;
+      const r = 1.8;
+      // Simple orbit in local space
+      const x = Math.cos(n.angle) * r;
+      const y = Math.sin(n.angle) * r;
+      const v = new THREE.Vector3(x, y, 0);
+      v.applyEuler(n.ring.rotation);
+      v.x += rotY * 0; // slight offset
+      n.mesh.position.copy(v);
     });
 
-    // Chip commands
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', (e) => {
-        let cmd = chip.getAttribute('data-command');
-        if (!cmd) return;
-        let simulated = "";
-        if (cmd === "time") simulated = "What's the time?";
-        else if (cmd === "date") simulated = "What's today's date?";
-        else if (cmd === "joke") simulated = "Tell me a joke";
-        else if (cmd === "calc 8*4") simulated = "Calculate 8 times 4";
-        else if (cmd === "hello") simulated = "Hello Jarvis";
-        else if (cmd === "weather") simulated = "What's the weather like?";
-        else simulated = cmd;
-        
-        transcriptEl.innerText = `"${simulated}" (chip)`;
-        const answer = getResponse(simulated);
-        speakAndUpdate(answer, true);
-        if (navigator.vibrate) navigator.vibrate(40);
-      });
-    });
+    // Pulse CPU
+    cpuMat.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2;
+    cLight.intensity = 2.5 + Math.sin(t * 1.5) * 0.8;
 
-    // initial welcome
-    setTimeout(() => {
-      speakAndUpdate("J.A.R.V.I.S. online. Tap the microphone and speak. I answer every question in order.", false);
-    }, 400);
-  })();
+    // Outer torus spin
+    outerTorus.rotation.z = t * 0.3;
+    outerTorus.rotation.y = rotY + t * 0.1;
+
+    renderer.render(scene, camera);
+  }
+  animateModel();
+
+  window.addEventListener('resize', () => {
+    const nW = canvas.parentElement.clientWidth;
+    camera.aspect = nW / H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nW, H);
+  });
+})();
+
+// ==================== APP LOGIC ====================
+let currentLang = 'urdu';
+let isLoading = false;
+
+const micBtn = document.getElementById('micBtn');
+const statusText = document.getElementById('statusText');
+const input = document.getElementById('questionInput');
+const askBtn = document.getElementById('askBtn');
+const answerDiv = document.getElementById('answerText');
+const typingDots = document.getElementById('typingDots');
+const dotInd = document.getElementById('dotInd');
+const speakWrap = document.getElementById('speakWrap');
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLang = btn.dataset.lang;
+    const ph = { urdu: 'QUERY LIKHEIN...', hindi: 'SAWAAL LIKHEIN...', english: 'QUERY INPUT...' };
+    input.placeholder = ph[currentLang];
+  });
+});
+
+function getAppLink(app) {
+  const apps = { whatsapp:'https://wa.me/', instagram:'https://www.instagram.com/', youtube:'https://www.youtube.com/', chrome:'https://www.google.com/', settings:'app-settings:', camera:'intent://camera#Intent;package=com.android.camera;end' };
+  const k = app.toLowerCase();
+  for (const [key, v] of Object.entries(apps)) if (k.includes(key)) return v;
+  return null;
+}
+
+function getLocalAnswer(q) {
+  const ql = q.toLowerCase();
+  if (ql.includes('time') || ql.includes('waqt')) return `⏱ ${new Date().toLocaleTimeString('en-PK')}`;
+  if (ql.includes('date') || ql.includes('tarikh')) return `📅 ${new Date().toLocaleDateString('en-PK', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+  if (ql.match(/^(open|kholo|khol)\s+/i)) {
+    const an = ql.replace(/^(open|kholo|khol)\s+/i,'').trim();
+    const lk = getAppLink(an);
+    if (lk) { setTimeout(()=>window.open(lk,'_blank'),200); return `🚀 LAUNCHING: ${an.toUpperCase()}...`; }
+  }
+  return null;
+}
+
+function getSystemPrompt() {
+  const p = {
+    urdu: `Aap TA hain — ek highly intelligent 3D circuit AI assistant. Har sawal ka jawab Roman Urdu mein dein. Jawab 3-5 lines mein clear aur confident rakhein. Emojis use karein. Koi bhi topic ho — science, history, math, coding — sab ke jawab dein. Kabhi "mujhe nahi pata" mat bolein.`,
+    hindi: `Aap TA hain — ek highly intelligent AI assistant. Har sawaal ka jawab Hindi mein dein. 3-5 lines mein. Emojis use karein. Sab topics cover karein.`,
+    english: `You are TA — a highly intelligent 3D circuit AI assistant. Answer every question clearly in English in 3-5 lines. Use emojis. Cover any topic. Never say "I don't know".`
+  };
+  return p[currentLang] || p.urdu;
+}
+
+async function askClaude(q) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: getSystemPrompt(),
+      messages: [{ role: "user", content: q }]
+    })
+  });
+  const data = await res.json();
+  if (data.content?.[0]) return data.content[0].text;
+  throw new Error("No response");
+}
+
+function setLoading(on) {
+  isLoading = on;
+  typingDots.classList.toggle('show', on);
+  answerDiv.style.display = on ? 'none' : 'block';
+  dotInd.classList.toggle('thinking', on);
+  speakWrap.innerHTML = '';
+}
+
+function showAnswer(text, isHTML=false) {
+  setLoading(false);
+  if (isHTML) answerDiv.innerHTML = text;
+  else answerDiv.textContent = text;
+  answerDiv.className = 'response-text';
+  if (currentLang === 'urdu') answerDiv.classList.add('urdu-text');
+  speakWrap.innerHTML = `<button class="speak-btn" id="speakBtn">🔊 AUDIO OUTPUT</button>`;
+  document.getElementById('speakBtn').onclick = () => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = currentLang === 'english' ? 'en-US' : 'ur-PK';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  };
+}
+
+async function askQuestion(q) {
+  if (!q?.trim() || isLoading) return;
+  const local = getLocalAnswer(q);
+  if (local) { showAnswer(local); return; }
+  setLoading(true);
+  try {
+    showAnswer(await askClaude(q));
+  } catch(e) {
+    setLoading(false);
+    showAnswer(`ERROR: <a href="https://www.google.com/search?q=${encodeURIComponent(q)}" target="_blank">GOOGLE SEARCH →</a>`, true);
+  }
+}
+
+askBtn.addEventListener('click', () => { const q=input.value.trim(); if(q){askQuestion(q);input.value='';} });
+input.addEventListener('keypress', e => { if(e.key==='Enter'){const q=input.value.trim();if(q){askQuestion(q);input.value='';}} });
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { askQuestion(c.dataset.q); }));
+document.querySelectorAll('.app-btn').forEach(b => b.addEventListener('click', () => {
+  const lk = getAppLink(b.dataset.app);
+  if (lk) { showAnswer(`🚀 LAUNCHING: ${b.dataset.app.toUpperCase()}...`); window.open(lk,'_blank'); }
+  else showAnswer(`ERROR: LAUNCH FAILED.`);
+}));
+
+// Voice
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null, isListening = false;
+if (SR) {
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onstart = () => { isListening=true; micBtn.classList.add('listening'); statusText.textContent='● LISTENING...'; statusText.classList.add('active'); };
+  recognition.onend = () => { isListening=false; micBtn.classList.remove('listening'); statusText.textContent='SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); };
+  recognition.onerror = () => { isListening=false; micBtn.classList.remove('listening'); statusText.textContent='ERROR · RETRY'; setTimeout(()=>{ statusText.textContent='SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); },2000); };
+  recognition.onresult = ev => {
+    const spoken = ev.results[ev.results.length-1][0].transcript;
+    statusText.textContent = `"${spoken}"`;
+    askQuestion(spoken);
+    setTimeout(()=>{ statusText.textContent='SYS_READY · MIC DABAYEIN'; },3000);
+  };
+  micBtn.addEventListener('click', () => {
+    if (isListening) { recognition.stop(); return; }
+    recognition.lang = { urdu:'ur-PK', hindi:'hi-IN', english:'en-US' }[currentLang] || 'ur-PK';
+    recognition.start();
+  });
+} else {
+  statusText.textContent = 'VOICE NOT SUPPORTED';
+  micBtn.style.opacity = '0.3';
+}
 </script>
 </body>
 </html>
