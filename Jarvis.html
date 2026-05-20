@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>J.A.R.V.I.S. — Voice Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: radial-gradient(circle at 30% 20%, #0a0f1e, #02060c);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      max-width: 480px;
+      width: 100%;
+      background: rgba(8, 18, 28, 0.7);
+      backdrop-filter: blur(20px);
+      border-radius: 56px;
+      border: 1px solid rgba(0, 180, 255, 0.35);
+      padding: 28px 22px 36px;
+      box-shadow: 0 25px 45px rgba(0,0,0,0.6);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.4rem;
+      background: linear-gradient(135deg, #fff, #3b82f6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: 2px;
+    }
+
+    .sub {
+      text-align: center;
+      color: #7aaae0;
+      font-size: 0.7rem;
+      margin-top: 6px;
+    }
+
+    .mic-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 35px 0 25px;
+      position: relative;
+    }
+
+    .mic-btn {
+      width: 130px;
+      height: 130px;
+      background: linear-gradient(145deg, #0e1a2a, #030a14);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px solid #0af;
+      box-shadow: 0 0 20px rgba(0,170,255,0.4);
+      transition: 0.08s linear;
+      z-index: 2;
+    }
+
+    .mic-btn:active {
+      transform: scale(0.94);
+    }
+
+    .mic-icon {
+      font-size: 56px;
+      color: #b3ecff;
+    }
+
+    .listening .mic-icon {
+      color: #2eff9e;
+      text-shadow: 0 0 12px #0f6;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(0,255,180,0.1);
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .listening .pulse-ring {
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+      100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0 12px;
+      color: #7bb3ff;
+      font-size: 0.85rem;
+    }
+
+    .led {
+      width: 10px;
+      height: 10px;
+      background: #3b82f6;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #3b82f6;
+    }
+
+    .led-active {
+      background: #2eff9e;
+      box-shadow: 0 0 12px #2eff9e;
+      animation: blink 0.9s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .bubble {
+      background: rgba(0, 0, 0, 0.55);
+      padding: 14px 18px;
+      border-radius: 28px;
+      margin: 10px 0;
+      color: #eef5ff;
+      border-left: 3px solid #3b82f6;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    .resp-bubble {
+      border-left-color: #2dd4bf;
+    }
+
+    .small-label {
+      font-size: 0.7rem;
+      color: #9ab0d0;
+      margin-top: 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0 10px;
+    }
+
+    .chip {
+      background: rgba(30, 55, 90, 0.7);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      color: #cae3ff;
+      border: 0.5px solid #3b82f6;
+      cursor: pointer;
+    }
+
+    .chip:active {
+      background: #2c5a8c;
+      transform: scale(0.96);
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.55rem;
+      color: #335588;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>J.A.R.V.I.S.</h1>
+  <div class="sub">Just A Rather Very Intelligent System</div>
+
+  <div class="mic-wrapper">
+    <div class="pulse-ring" id="pulseRing"></div>
+    <button class="mic-btn" id="micBtn">
+      <span class="mic-icon" id="micIcon">🎙️</span>
+    </button>
+  </div>
+
+  <div class="status-row">
+    <span class="led" id="statusLed"></span>
+    <span id="statusText">STANDBY</span>
+  </div>
+
+  <div class="small-label">➤ YOU SAID</div>
+  <div class="bubble" id="transcriptEl">—</div>
+
+  <div class="small-label">⟡ JARVIS REPLIES</div>
+  <div class="bubble resp-bubble" id="responseEl">Tap the mic and speak. I answer everything in order.</div>
+
+  <div class="chips">
+    <div class="chip" data-command="time">🕒 Time</div>
+    <div class="chip" data-command="date">📅 Date</div>
+    <div class="chip" data-command="joke">😂 Joke</div>
+    <div class="chip" data-command="calc 8*4">🧮 8×4</div>
+    <div class="chip" data-command="hello">👋 Greeting</div>
+    <div class="chip" data-command="weather">☁️ Weather</div>
+  </div>
+  <footer>Tap mic → speak → JARVIS answers in correct order, every time.</footer>
+</div>
+
+<script>
+  (function() {
+    // Elements
+    const micBtn = document.getElementById('micBtn');
+    const micIconSpan = document.getElementById('micIcon');
+    const transcriptEl = document.getElementById('transcriptEl');
+    const responseEl = document.getElementById('responseEl');
+    const statusTextSpan = document.getElementById('statusText');
+    const statusLed = document.getElementById('statusLed');
+    const card = document.querySelector('.card');
+
+    // Speech recognition
+    const SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+
+    const synth = window.speechSynthesis;
+    let ttsSupported = true;
+
+    if (!SpeechRecog) {
+      statusTextSpan.innerText = "VOICE NOT SUPPORTED";
+      micBtn.style.opacity = "0.5";
+      micBtn.disabled = true;
+    } else {
+      recognition = new SpeechRecog();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    }
+
+    // ========== INTELLIGENT RESPONSE (ANSWERS EVERYTHING IN ORDER) ==========
+    function getResponse(userText) {
+      if (!userText || userText.trim() === "") {
+        return "I didn't hear anything, sir. Please speak again.";
+      }
+
+      const txt = userText.toLowerCase().trim();
+
+      // 1. TIME
+      if (txt.includes('time') || txt === 'what time is it' || txt.includes('current time')) {
+        const now = new Date();
+        let hours = now.getHours();
+        const mins = now.getMinutes().toString().padStart(2,'0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `The current time is ${hours}:${mins} ${ampm}.`;
+      }
+
+      // 2. DATE
+      if (txt.includes('date') || txt.includes("today's date")) {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return `Today is ${now.toLocaleDateString('en-US', options)}.`;
+      }
+
+      // 3. JOKE
+      if (txt.includes('joke') || txt.includes('funny')) {
+        const jokes = [
+          "Why don't scientists trust atoms? Because they make up everything!",
+          "What do you call a fake noodle? An impasta.",
+          "Why did the scarecrow win an award? He was outstanding in his field.",
+          "I told my computer I needed a break, and now it won't stop sending me vacation ads."
+        ];
+        return jokes[Math.floor(Math.random() * jokes.length)];
+      }
+
+      // 4. CALCULATION (simple math)
+      const mathMatch = txt.match(/(\d+)\s*([+\-*\/])\s*(\d+)/);
+      if (mathMatch || txt.includes('plus') || txt.includes('minus') || txt.includes('times') || txt.includes('divided by')) {
+        let expr = txt.replace(/plus/g, '+').replace(/minus/g, '-').replace(/times/g, '*').replace(/divided by/g, '/');
+        const match = expr.match(/(\d+)\s*([+\-*\/])\s*(\d+)/);
+        if (match) {
+          const a = parseFloat(match[1]);
+          const op = match[2];
+          const b = parseFloat(match[3]);
+          let res;
+          if (op === '+') res = a + b;
+          else if (op === '-') res = a - b;
+          else if (op === '*') res = a * b;
+          else if (op === '/') res = b !== 0 ? (a / b).toFixed(2) : "undefined (divide by zero)";
+          else res = "cannot compute";
+          return `The result of ${a} ${op} ${b} is ${res}.`;
+        }
+        return "Sir, please say something like '5 plus 3' or '10 divided by 2'.";
+      }
+
+      // 5. WEATHER (mock)
+      if (txt.includes('weather') || txt.includes('temperature')) {
+        return "According to my sensors, it's 74°F and partly cloudy. For accurate forecasts, check a weather app, sir.";
+      }
+
+      // 6. GREETING
+      if (txt.match(/hello|hi jarvis|hey jarvis|good morning|good evening/)) {
+        return "Hello, sir. J.A.R.V.I.S. ready. How may I assist you today?";
+      }
+
+      // 7. GENERAL KNOWLEDGE / ANY QUESTION
+      if (txt.includes('what is') || txt.includes('who is') || txt.includes('tell me about') || txt.includes('explain')) {
+        let query = encodeURIComponent(userText.substring(0, 80));
+        return `I can help you search for "${userText.substring(0, 60)}". For a full answer, you can open: https://google.com/search?q=${query} — but in short: I'm designed to answer every question in order. Please ask clearly.`;
+      }
+
+      // 8. BATH / CAROL / RANDOM STUFF — handled with humor but no nonsense
+      if (txt.includes('bath') || txt.includes('carol') || txt.includes('mojo')) {
+        return "I understand, sir. No random baths or Carols. Everything is in proper order with full mojo. How else can I help?";
+      }
+
+      // 9. FALLBACK — answers EVERYTHING, never empty
+      return `I heard: "${userText}". I am J.A.R.V.I.S., and I answer every question in correct order. You can ask for time, date, jokes, math, or general info.`;
+    }
+
+    // Speak + update UI
+    function speakAndUpdate(text, isResponse = true) {
+      if (isResponse) {
+        responseEl.innerText = text;
+      }
+      if (ttsSupported && synth && text) {
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.95;
+        synth.speak(utterance);
+      }
+    }
+
+    function handleCommand(spoken) {
+      transcriptEl.innerText = `"${spoken}"`;
+      const answer = getResponse(spoken);
+      speakAndUpdate(answer, true);
+    }
+
+    // Listening state
+    function setListening(state) {
+      isListening = state;
+      if (state) {
+        card.classList.add('listening');
+        micIconSpan.innerHTML = '🎤';
+        statusTextSpan.innerText = 'LISTENING...';
+        statusLed.classList.add('led-active');
+        if (recognition) {
+          try {
+            recognition.start();
+          } catch(e) {
+            setListening(false);
+            responseEl.innerText = "Mic error. Tap again.";
+          }
+        }
+      } else {
+        card.classList.remove('listening');
+        micIconSpan.innerHTML = '🎙️';
+        statusTextSpan.innerText = 'STANDBY';
+        statusLed.classList.remove('led-active');
+        if (recognition) {
+          try {
+            recognition.abort();
+          } catch(e) {}
+        }
+      }
+    }
+
+    // Recognition events
+    if (recognition) {
+      recognition.onstart = () => {};
+      recognition.onend = () => {
+        if (isListening) setListening(false);
+      };
+      recognition.onerror = (e) => {
+        setListening(false);
+        responseEl.innerText = "Voice error. Please tap mic again.";
+      };
+      recognition.onresult = (event) => {
+        const last = event.results.length - 1;
+        const spoken = event.results[last][0].transcript;
+        if (spoken && spoken.trim()) {
+          handleCommand(spoken);
+        } else {
+          responseEl.innerText = "I didn't catch that, sir.";
+        }
+        setListening(false);
+      };
+    }
+
+    micBtn.addEventListener('click', () => {
+      if (!recognition) {
+        responseEl.innerText = "Voice not supported on this browser.";
+        return;
+      }
+      if (isListening) {
+        setListening(false);
+        setTimeout(() => setListening(true), 80);
+      } else {
+        setListening(true);
+      }
+    });
+
+    // Chip commands
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        let cmd = chip.getAttribute('data-command');
+        if (!cmd) return;
+        let simulated = "";
+        if (cmd === "time") simulated = "What's the time?";
+        else if (cmd === "date") simulated = "What's today's date?";
+        else if (cmd === "joke") simulated = "Tell me a joke";
+        else if (cmd === "calc 8*4") simulated = "Calculate 8 times 4";
+        else if (cmd === "hello") simulated = "Hello Jarvis";
+        else if (cmd === "weather") simulated = "What's the weather like?";
+        else simulated = cmd;
+        
+        transcriptEl.innerText = `"${simulated}" (chip)`;
+        const answer = getResponse(simulated);
+        speakAndUpdate(answer, true);
+        if (navigator.vibrate) navigator.vibrate(40);
+      });
+    });
+
+    // initial welcome
+    setTimeout(() => {
+      speakAndUpdate("J.A.R.V.I.S. online. Tap the microphone and speak. I answer every question in order.", false);
+    }, 400);
+  })();
+</script>
+</body>
+</html>
