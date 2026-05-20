@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>TA — 3D Circuit Intelligence</title>
+  <title>TA — 3D Circuit Intelligence | Neural Voice Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -29,7 +29,6 @@
       overflow-x: hidden;
     }
 
-    /* Three.js canvas fills background */
     #bg-canvas {
       position: fixed;
       inset: 0;
@@ -37,7 +36,6 @@
       pointer-events: none;
     }
 
-    /* Scanline overlay */
     .scanlines {
       position: fixed;
       inset: 0;
@@ -52,7 +50,6 @@
       );
     }
 
-    /* Moving scan beam */
     .scan-beam {
       position: fixed;
       left: 0; right: 0;
@@ -69,7 +66,6 @@
       100% { top: 100vh; opacity: 0; }
     }
 
-    /* Main layout */
     .layout {
       position: relative;
       z-index: 10;
@@ -81,12 +77,11 @@
     }
 
     .card {
-      max-width: 460px;
+      max-width: 480px;
       width: 100%;
       margin-top: 8px;
     }
 
-    /* HUD Panel */
     .hud-panel {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -98,14 +93,12 @@
       box-shadow: 0 0 40px rgba(0,245,255,0.08), inset 0 0 60px rgba(0,20,50,0.5);
     }
 
-    /* Corner brackets */
     .corner { position: absolute; width: 18px; height: 18px; z-index: 5; }
     .corner.tl { top: 0; left: 0; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
     .corner.tr { top: 0; right: 0; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
     .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
     .corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
 
-    /* Top bar */
     .top-bar {
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), var(--cyan), transparent);
@@ -117,7 +110,6 @@
       100% { background-position: 200% 0%; }
     }
 
-    /* 3D Canvas inside card — the centerpiece */
     #model-canvas {
       width: 100%;
       height: 220px;
@@ -126,7 +118,6 @@
     }
     #model-canvas:active { cursor: grabbing; }
 
-    /* Header overlay on canvas */
     .canvas-overlay {
       position: absolute;
       top: 2px;
@@ -171,17 +162,9 @@
     .badge.ai { color: var(--cyan); border: 1px solid var(--border); }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    /* Canvas position wrapper */
-    .canvas-wrap {
-      position: relative;
-    }
+    .canvas-wrap { position: relative; }
+    .body-content { padding: 14px 16px 0; }
 
-    /* Body content */
-    .body-content {
-      padding: 14px 16px 0;
-    }
-
-    /* Lang toggle */
     .lang-row {
       display: flex;
       gap: 4px;
@@ -208,7 +191,6 @@
       text-shadow: 0 0 8px var(--cyan);
     }
 
-    /* Mic */
     .mic-section {
       display: flex;
       flex-direction: column;
@@ -264,7 +246,6 @@
     }
     .status-text.active { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
 
-    /* Input */
     .input-wrap {
       display: flex;
       gap: 6px;
@@ -307,7 +288,6 @@
     }
     .send-btn:hover { background: #fff; box-shadow: var(--cyan-glow); }
 
-    /* Response */
     .panel-label {
       font-size: 0.52rem;
       letter-spacing: 3px;
@@ -358,7 +338,7 @@
     @keyframes db { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-6px);opacity:1} }
     .response-text { color: var(--text); font-size: 0.84rem; line-height: 1.75; word-break: break-word; }
     .response-text.urdu-text { direction: rtl; text-align: right; }
-    .response-text a { color: var(--cyan); }
+    .response-text a { color: var(--cyan); text-decoration: underline; }
     .speak-btn {
       display: inline-flex; align-items: center; gap: 4px;
       margin-top: 8px; padding: 3px 10px;
@@ -368,7 +348,6 @@
     }
     .speak-btn:hover { background: rgba(57,255,20,0.1); }
 
-    /* Chips */
     .section-hdr {
       font-size: 0.5rem; letter-spacing: 3px; color: var(--muted);
       text-transform: uppercase; margin-bottom: 7px;
@@ -384,7 +363,6 @@
     }
     .chip:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); text-shadow: 0 0 6px var(--cyan); }
 
-    /* App grid */
     .app-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 16px; }
     .app-btn {
       background: rgba(0,12,28,0.7); border: 1px solid var(--border);
@@ -397,7 +375,6 @@
     .app-icon { font-size: 17px; display: block; margin-bottom: 4px; }
 
     .h-div { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin-bottom: 12px; }
-
     .bottom-bar {
       display: flex; justify-content: space-between; align-items: center;
       padding: 10px 0 14px;
@@ -407,7 +384,6 @@
 </head>
 <body>
 
-<!-- Full-screen 3D background -->
 <canvas id="bg-canvas"></canvas>
 <div class="scanlines"></div>
 <div class="scan-beam"></div>
@@ -421,7 +397,6 @@
   <div class="corner br"></div>
   <div class="top-bar"></div>
 
-  <!-- 3D Model Canvas (inside card) -->
   <div class="canvas-wrap">
     <canvas id="model-canvas"></canvas>
     <div class="canvas-overlay">
@@ -436,15 +411,12 @@
   </div>
 
   <div class="body-content">
-
-    <!-- Lang -->
     <div class="lang-row">
       <button class="lang-btn active" data-lang="urdu">اردو</button>
       <button class="lang-btn" data-lang="hindi">हिंदी</button>
       <button class="lang-btn" data-lang="english">ENG</button>
     </div>
 
-    <!-- Mic -->
     <div class="mic-section">
       <div class="mic-outer">
         <div class="ring r1"></div>
@@ -456,25 +428,22 @@
       <div class="status-text" id="statusText">SYS_READY · MIC DABAYEIN</div>
     </div>
 
-    <!-- Input -->
     <div class="input-wrap">
       <span class="input-prefix">&gt;_</span>
       <input type="text" id="questionInput" placeholder="QUERY INPUT...">
       <button class="send-btn" id="askBtn">GO</button>
     </div>
 
-    <!-- Response -->
     <div class="panel-label">
       <span class="dot-ind" id="dotInd"></span>
       OUTPUT · TA RESPONSE
     </div>
     <div class="response-box">
       <div class="typing-dots" id="typingDots"><span></span><span></span><span></span></div>
-      <div class="response-text" id="answerText">SYSTEM ONLINE. MIC DABAYEIN YA QUERY LIKHEIN.</div>
+      <div class="response-text" id="answerText">⚡ SYSTEM BOOT. VOICE ACTIVE. DABAYEIN MIC AUR SAWAAL KAREIN.</div>
       <div id="speakWrap"></div>
     </div>
 
-    <!-- Chips -->
     <div class="section-hdr">QUICK QUERIES</div>
     <div class="chips">
       <div class="chip" data-q="Abhi time kya hai?">⏱ TIME</div>
@@ -486,8 +455,6 @@
     </div>
 
     <div class="h-div"></div>
-
-    <!-- Apps -->
     <div class="section-hdr">APP ACCESS</div>
     <div class="app-grid">
       <div class="app-btn" data-app="whatsapp"><span class="app-icon">💬</span>WHATSAPP</div>
@@ -502,73 +469,59 @@
       <span>TA · 3D CIRCUIT INTELLIGENCE</span>
       <span>BUILD 2025.05</span>
     </div>
-
   </div>
 </div>
 </div>
 </div>
 
-<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ==================== 3D BACKGROUND SCENE ====================
+// ==================== 3D BACKGROUND (dynamic particles + grids) ====================
 (function() {
   const canvas = document.getElementById('bg-canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 0);
-
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.z = 18;
 
-  // Particle field
-  const particleCount = 600;
+  const particleCount = 900;
   const pGeo = new THREE.BufferGeometry();
   const pPos = new Float32Array(particleCount * 3);
   const pColors = new Float32Array(particleCount * 3);
   for (let i = 0; i < particleCount; i++) {
-    pPos[i*3]   = (Math.random() - 0.5) * 60;
+    pPos[i*3] = (Math.random() - 0.5) * 70;
     pPos[i*3+1] = (Math.random() - 0.5) * 60;
-    pPos[i*3+2] = (Math.random() - 0.5) * 40;
+    pPos[i*3+2] = (Math.random() - 0.5) * 50;
     const t = Math.random();
     if (t < 0.6) { pColors[i*3]=0; pColors[i*3+1]=0.9; pColors[i*3+2]=1; }
-    else if (t < 0.8) { pColors[i*3]=1; pColors[i*3+1]=0.18; pColors[i*3+2]=0.47; }
-    else { pColors[i*3]=0.22; pColors[i*3+1]=1; pColors[i*3+2]=0.08; }
+    else if (t < 0.8) { pColors[i*3]=1; pColors[i*3+1]=0.2; pColors[i*3+2]=0.6; }
+    else { pColors[i*3]=0.2; pColors[i*3+1]=1; pColors[i*3+2]=0.1; }
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
   pGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-  const pMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, opacity: 0.7 });
-  scene.add(new THREE.Points(pGeo, pMat));
+  scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.07, vertexColors: true, transparent: true, opacity: 0.65 })));
 
-  // Grid lines (circuit traces)
-  function addLine(pts, color, opacity=0.15) {
+  function addLine(pts, color, opacity=0.08) {
     const geo = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(...p)));
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-    scene.add(new THREE.Line(geo, mat));
+    scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity })));
   }
-  for (let i = -15; i <= 15; i += 5) {
-    addLine([[-20,i,-5],[20,i,-5]], 0x00f5ff, 0.06);
-    addLine([[i,-20,-5],[i,20,-5]], 0x00f5ff, 0.06);
+  for (let i = -18; i <= 18; i += 4) {
+    addLine([[-25,i,-8],[25,i,-8]], 0x00f5ff, 0.05);
+    addLine([[i,-25,-8],[i,25,-8]], 0x00f5ff, 0.05);
   }
 
-  // Floating circuit rings (far background)
-  function makeRing(r, tilt, y, color, opacity) {
-    const geo = new THREE.TorusGeometry(r, 0.02, 8, 80);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, wireframe: false });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = tilt;
-    mesh.position.y = y;
-    mesh.position.z = -6;
-    scene.add(mesh);
-    return mesh;
-  }
-  const bgRings = [
-    makeRing(7, 0.4, 0, 0x00f5ff, 0.12),
-    makeRing(9, -0.3, 2, 0xff2d78, 0.07),
-    makeRing(11, 0.6, -1, 0x00f5ff, 0.05),
-  ];
+  const bgRings = [];
+  const ringParams = [[7, 0.4, 0, 0x00f5ff, 0.1], [9, -0.3, 2, 0xff2d78, 0.07], [11, 0.6, -1, 0x00f5ff, 0.06]];
+  ringParams.forEach(([r, tilt, y, color, op]) => {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.025, 12, 100), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op }));
+    ring.rotation.x = tilt;
+    ring.position.y = y;
+    ring.position.z = -7;
+    scene.add(ring);
+    bgRings.push(ring);
+  });
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -577,235 +530,132 @@
   });
 
   let bgT = 0;
-  function animateBg() {
-    requestAnimationFrame(animateBg);
-    bgT += 0.004;
-    bgRings.forEach((r, i) => { r.rotation.z = bgT * (0.3 + i * 0.1); });
-    const pos = pGeo.attributes.position.array;
+  function animateBackground() {
+    requestAnimationFrame(animateBackground);
+    bgT += 0.003;
+    bgRings.forEach((r, idx) => { r.rotation.z = bgT * (0.2 + idx * 0.12); });
+    const positions = pGeo.attributes.position.array;
     for (let i = 0; i < particleCount; i++) {
-      pos[i*3+1] -= 0.005;
-      if (pos[i*3+1] < -30) pos[i*3+1] = 30;
+      positions[i*3+1] -= 0.007;
+      if (positions[i*3+1] < -35) positions[i*3+1] = 35;
     }
     pGeo.attributes.position.needsUpdate = true;
     renderer.render(scene, camera);
   }
-  animateBg();
+  animateBackground();
 })();
 
-// ==================== 3D MODEL INSIDE CARD ====================
+// ==================== 3D INTERACTIVE MODEL (Core + torus + nodes) ====================
 (function() {
   const canvas = document.getElementById('model-canvas');
-  const W = canvas.parentElement.clientWidth;
-  const H = 220;
-  canvas.width = W;
-  canvas.height = H;
-
+  const container = canvas.parentElement;
+  let width = container.clientWidth, height = 220;
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(W, H);
+  renderer.setSize(width, height);
   renderer.setClearColor(0x000000, 0);
-
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 100);
-  camera.position.z = 5;
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+  camera.position.z = 4.8;
 
-  // Lights
-  scene.add(new THREE.AmbientLight(0x001a2e, 1));
-  const cLight = new THREE.PointLight(0x00f5ff, 3, 20);
-  cLight.position.set(0, 0, 4);
-  scene.add(cLight);
-  const pLight = new THREE.PointLight(0xff2d78, 1.5, 15);
-  pLight.position.set(-3, 2, 2);
-  scene.add(pLight);
+  const ambient = new THREE.AmbientLight(0x001a2e, 1.2);
+  scene.add(ambient);
+  const mainLight = new THREE.PointLight(0x00f5ff, 2.2, 18);
+  mainLight.position.set(1, 1, 3);
+  scene.add(mainLight);
+  const magentaLight = new THREE.PointLight(0xff2d78, 1.2);
+  magentaLight.position.set(-2, 1.5, 2);
+  scene.add(magentaLight);
 
-  // Central CPU chip (box)
-  const cpuGeo = new THREE.BoxGeometry(1.0, 0.12, 1.0);
-  const cpuMat = new THREE.MeshStandardMaterial({
-    color: 0x001428,
-    emissive: 0x00f5ff,
-    emissiveIntensity: 0.4,
-    metalness: 0.9,
-    roughness: 0.2,
-  });
-  const cpu = new THREE.Mesh(cpuGeo, cpuMat);
-  scene.add(cpu);
-
-  // CPU pins
-  const pinMat = new THREE.MeshStandardMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 0.6 });
-  for (let i = -3; i <= 3; i++) {
-    for (const side of [-1, 1]) {
+  const coreMat = new THREE.MeshStandardMaterial({ color: 0x001c2c, emissive: 0x00a5ff, emissiveIntensity: 0.45, metalness: 0.85, roughness: 0.25 });
+  const core = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.12, 0.85), coreMat);
+  scene.add(core);
+  
+  const pinMat = new THREE.MeshStandardMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 0.5 });
+  for (let i = -2; i <= 2; i++) {
+    for (let s of [-1, 1]) {
       const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), pinMat);
-      pin.position.set(i * 0.13, -0.15, side * 0.45);
-      pin.rotation.x = Math.PI / 2;
+      pin.position.set(i * 0.2, -0.12, s * 0.55);
+      pin.rotation.x = Math.PI/2;
       scene.add(pin);
-
       const pin2 = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), pinMat);
-      pin2.position.set(side * 0.45, -0.15, i * 0.13);
-      pin2.rotation.z = Math.PI / 2;
+      pin2.position.set(s * 0.55, -0.12, i * 0.2);
+      pin2.rotation.z = Math.PI/2;
       scene.add(pin2);
     }
   }
 
-  // Orbiting sphere (main)
-  const sphereGeo = new THREE.SphereGeometry(1.8, 32, 32);
-  const sphereMat = new THREE.MeshStandardMaterial({
-    color: 0x002030,
-    emissive: 0x001520,
-    metalness: 0.5,
-    roughness: 0.8,
-    wireframe: false,
-    transparent: true,
-    opacity: 0.0,
-  });
-  const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-  scene.add(sphere);
-
-  // Wireframe sphere overlay
-  const wfGeo = new THREE.SphereGeometry(1.8, 18, 12);
-  const wfMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff, wireframe: true, transparent: true, opacity: 0.08 });
-  const wfSphere = new THREE.Mesh(wfGeo, wfMat);
-  scene.add(wfSphere);
-
-  // Torus rings around sphere
-  function makeTorus(rx, ry, rz, color, opacity, thick=0.012) {
-    const geo = new THREE.TorusGeometry(1.8, thick, 8, 100);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
-    const m = new THREE.Mesh(geo, mat);
-    m.rotation.set(rx, ry, rz);
-    scene.add(m);
-    return m;
+  const wireSphere = new THREE.Mesh(new THREE.SphereGeometry(1.75, 24, 16), new THREE.MeshBasicMaterial({ color: 0x00f5ff, wireframe: true, transparent: true, opacity: 0.13 }));
+  scene.add(wireSphere);
+  
+  function addTorus(rx, ry, rz, color, op, thick=0.014) {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(1.75, thick, 10, 100), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op }));
+    t.rotation.set(rx, ry, rz);
+    scene.add(t);
+    return t;
   }
-  const torus1 = makeTorus(Math.PI/2, 0, 0, 0x00f5ff, 0.9, 0.015);
-  const torus2 = makeTorus(Math.PI/4, Math.PI/6, 0, 0xff2d78, 0.6, 0.01);
-  const torus3 = makeTorus(-Math.PI/3, Math.PI/4, Math.PI/5, 0x00f5ff, 0.4, 0.008);
-
-  // Orbiting nodes on torus1
-  const nodeMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff });
+  const t1 = addTorus(Math.PI/2, 0, 0, 0x00f5ff, 0.9, 0.014);
+  const t2 = addTorus(Math.PI/3.5, Math.PI/5, 0, 0xff2d78, 0.65, 0.01);
+  const t3 = addTorus(-Math.PI/3, Math.PI/5.5, Math.PI/4, 0x00f5ff, 0.45, 0.008);
+  const outerRing = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.008, 8, 140), new THREE.MeshBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0.3 }));
+  outerRing.rotation.x = 0.4;
+  scene.add(outerRing);
+  
   const nodes = [];
-  for (let i = 0; i < 6; i++) {
-    const n = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), nodeMat);
+  for (let i = 0; i < 8; i++) {
+    const n = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), new THREE.MeshStandardMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 0.5 }));
     scene.add(n);
-    nodes.push({ mesh: n, angle: (i / 6) * Math.PI * 2, ring: torus1 });
+    nodes.push({ mesh: n, angle: (i / 8) * Math.PI * 2, ring: t1, speed: 1.0 });
   }
-
-  // Orbiting nodes on torus2
-  const nodeMat2 = new THREE.MeshBasicMaterial({ color: 0xff2d78 });
-  for (let i = 0; i < 4; i++) {
-    const n = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), nodeMat2);
+  for (let i = 0; i < 5; i++) {
+    const n = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshStandardMaterial({ color: 0xff2d78, emissive: 0xff2d78, emissiveIntensity: 0.3 }));
     scene.add(n);
-    nodes.push({ mesh: n, angle: (i / 4) * Math.PI * 2, ring: torus2, speed: 0.7 });
+    nodes.push({ mesh: n, angle: (i / 5) * Math.PI * 2, ring: t2, speed: 0.75 });
   }
 
-  // Circuit trace lines from center
-  const traceMat = new THREE.LineBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0.4 });
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    const r = 1.8;
-    const pts = [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, (Math.random()-0.5)*0.4),
-      new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r * 0.8, 0),
-    ];
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    scene.add(new THREE.Line(geo, traceMat));
-  }
+  let rotY = 0, rotX = 0, dragging = false, lastX=0, lastY=0;
+  canvas.addEventListener('mousedown', (e) => { dragging=true; lastX=e.clientX; lastY=e.clientY; });
+  canvas.addEventListener('touchstart', (e) => { dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; });
+  window.addEventListener('mouseup', () => dragging=false);
+  window.addEventListener('touchend', () => dragging=false);
+  window.addEventListener('mousemove', (e) => { if(dragging){ rotY += (e.clientX-lastX)*0.008; rotX += (e.clientY-lastY)*0.008; lastX=e.clientX; lastY=e.clientY; } });
+  window.addEventListener('touchmove', (e) => { if(dragging){ rotY += (e.touches[0].clientX-lastX)*0.008; rotX += (e.touches[0].clientY-lastY)*0.008; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; } });
 
-  // Outer ring (large)
-  const outerTorus = new THREE.Mesh(
-    new THREE.TorusGeometry(2.4, 0.008, 6, 120),
-    new THREE.MeshBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0.25 })
-  );
-  outerTorus.rotation.x = 0.3;
-  scene.add(outerTorus);
-
-  // Floating particles around model
-  const mpGeo = new THREE.BufferGeometry();
-  const mpPos = new Float32Array(200 * 3);
-  for (let i = 0; i < 200; i++) {
-    const phi = Math.random() * Math.PI * 2;
-    const theta = Math.random() * Math.PI;
-    const r = 2.0 + Math.random() * 1.5;
-    mpPos[i*3]   = r * Math.sin(theta) * Math.cos(phi);
-    mpPos[i*3+1] = r * Math.sin(theta) * Math.sin(phi);
-    mpPos[i*3+2] = r * Math.cos(theta);
-  }
-  mpGeo.setAttribute('position', new THREE.BufferAttribute(mpPos, 3));
-  const mpMat = new THREE.PointsMaterial({ size: 0.04, color: 0x00f5ff, transparent: true, opacity: 0.6 });
-  scene.add(new THREE.Points(mpGeo, mpMat));
-
-  // Mouse drag
-  let isDragging = false, lastX = 0, lastY = 0;
-  let rotX = 0, rotY = 0;
-  canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
-  canvas.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; });
-  window.addEventListener('mouseup', () => isDragging = false);
-  window.addEventListener('touchend', () => isDragging = false);
-  window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    rotY += (e.clientX - lastX) * 0.008;
-    rotX += (e.clientY - lastY) * 0.008;
-    lastX = e.clientX; lastY = e.clientY;
-  });
-  window.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    rotY += (e.touches[0].clientX - lastX) * 0.008;
-    rotX += (e.touches[0].clientY - lastY) * 0.008;
-    lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
-  });
-
-  let t = 0;
+  let time = 0;
   function animateModel() {
     requestAnimationFrame(animateModel);
-    t += 0.01;
-
-    // Auto rotate
-    const group = [sphere, wfSphere, torus1, torus2, torus3, outerTorus];
-    if (!isDragging) {
-      rotY += 0.004;
-      rotX += 0.001;
-    }
-    group.forEach(m => {
-      m.rotation.y = rotY;
-      m.rotation.x = rotX;
+    time += 0.014;
+    if(!dragging){ rotY += 0.005; rotX += 0.002; }
+    const group = [wireSphere, t1, t2, t3, outerRing];
+    group.forEach(m => { m.rotation.y = rotY; m.rotation.x = rotX; });
+    core.rotation.y = rotY;
+    mainLight.intensity = 2.1 + Math.sin(time*2.2)*0.9;
+    coreMat.emissiveIntensity = 0.4 + Math.sin(time*2.5)*0.25;
+    nodes.forEach(n => {
+      n.angle += 0.018 * n.speed;
+      const r = 1.75;
+      let x = Math.cos(n.angle) * r;
+      let y = Math.sin(n.angle) * r;
+      const vec = new THREE.Vector3(x, y, 0);
+      vec.applyEuler(n.ring.rotation);
+      n.mesh.position.copy(vec);
     });
-    cpu.rotation.y = rotY;
-
-    // Orbit nodes
-    nodes.forEach((n, i) => {
-      n.angle += (n.speed || 1.0) * 0.018;
-      const r = 1.8;
-      // Simple orbit in local space
-      const x = Math.cos(n.angle) * r;
-      const y = Math.sin(n.angle) * r;
-      const v = new THREE.Vector3(x, y, 0);
-      v.applyEuler(n.ring.rotation);
-      v.x += rotY * 0; // slight offset
-      n.mesh.position.copy(v);
-    });
-
-    // Pulse CPU
-    cpuMat.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2;
-    cLight.intensity = 2.5 + Math.sin(t * 1.5) * 0.8;
-
-    // Outer torus spin
-    outerTorus.rotation.z = t * 0.3;
-    outerTorus.rotation.y = rotY + t * 0.1;
-
+    outerRing.rotation.z = time * 0.2;
     renderer.render(scene, camera);
   }
   animateModel();
-
   window.addEventListener('resize', () => {
-    const nW = canvas.parentElement.clientWidth;
-    camera.aspect = nW / H;
+    const w = container.clientWidth;
+    camera.aspect = w / 220;
     camera.updateProjectionMatrix();
-    renderer.setSize(nW, H);
+    renderer.setSize(w, 220);
   });
 })();
 
-// ==================== APP LOGIC ====================
+// ==================== VOICE ASSISTANT + CLAUDE AI (Real Q/A) ====================
 let currentLang = 'urdu';
 let isLoading = false;
+let speechSynth = window.speechSynthesis;
+let currentUtterance = null;
 
 const micBtn = document.getElementById('micBtn');
 const statusText = document.getElementById('statusText');
@@ -821,53 +671,68 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
     document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentLang = btn.dataset.lang;
-    const ph = { urdu: 'QUERY LIKHEIN...', hindi: 'SAWAAL LIKHEIN...', english: 'QUERY INPUT...' };
-    input.placeholder = ph[currentLang];
+    const placeholders = { urdu: 'QUERY LIKHEIN...', hindi: 'SAWAAL LIKHEIN...', english: 'QUERY INPUT...' };
+    input.placeholder = placeholders[currentLang];
   });
 });
 
 function getAppLink(app) {
-  const apps = { whatsapp:'https://wa.me/', instagram:'https://www.instagram.com/', youtube:'https://www.youtube.com/', chrome:'https://www.google.com/', settings:'app-settings:', camera:'intent://camera#Intent;package=com.android.camera;end' };
-  const k = app.toLowerCase();
-  for (const [key, v] of Object.entries(apps)) if (k.includes(key)) return v;
-  return null;
+  const map = { whatsapp:'https://wa.me/', instagram:'https://www.instagram.com/', youtube:'https://www.youtube.com/', chrome:'https://www.google.com/', settings:'#', camera:'#' };
+  return map[app] || null;
 }
 
 function getLocalAnswer(q) {
   const ql = q.toLowerCase();
-  if (ql.includes('time') || ql.includes('waqt')) return `⏱ ${new Date().toLocaleTimeString('en-PK')}`;
-  if (ql.includes('date') || ql.includes('tarikh')) return `📅 ${new Date().toLocaleDateString('en-PK', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
-  if (ql.match(/^(open|kholo|khol)\s+/i)) {
-    const an = ql.replace(/^(open|kholo|khol)\s+/i,'').trim();
-    const lk = getAppLink(an);
-    if (lk) { setTimeout(()=>window.open(lk,'_blank'),200); return `🚀 LAUNCHING: ${an.toUpperCase()}...`; }
+  if (ql.includes('time') || ql.includes('waqt') || ql.includes('samay')) return `⏱ ${new Date().toLocaleTimeString('en-PK')}`;
+  if (ql.includes('date') || ql.includes('tarikh') || ql.includes('tithi')) return `📅 ${new Date().toLocaleDateString('en-PK', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}`;
+  if (ql.match(/^(open|kholo|khol|launch)\s+/i)) {
+    const appName = ql.replace(/^(open|kholo|khol|launch)\s+/i,'').trim();
+    const link = getAppLink(appName);
+    if (link && link !== '#') { setTimeout(()=>window.open(link,'_blank'),100); return `🚀 LAUNCHING: ${appName.toUpperCase()} ...`; }
+    else return `⚠️ APP NOT FOUND: ${appName}`;
   }
+  if (ql.includes('joke')) return "🎭 Aaj ka mazedaar joke: Ek computer ne doosre se kaha: 'Tumhara processor kitna fast hai?' Doosra bola: 'Itna fast ke mera fan bhi thak jaata hai!' 😆";
+  if (ql.includes('capital') || ql.includes('darulhakumat')) return "🇵🇰 Pakistan ka capital Islamabad hai. Yeh ek khubsurat aur modern city hai, Faisal Masjid aur Daman-e-Koh ke liye mashhoor.";
+  if (ql.includes('quote') || ql.includes('motivation')) return "💪 'Kamyabi unhi ko milti hai jo haar nahi maante. Har naya din ek naya mauka hai.' — TA";
+  if (ql.includes('ai kya') || ql.includes('what is ai')) return "🤖 Artificial Intelligence (AI) wo technology hai jo machines ko insano ki tarah sochne aur seekhne ki salahiyat deti hai. Jaise main TA aapki madad kar raha hoon!";
   return null;
 }
 
 function getSystemPrompt() {
-  const p = {
-    urdu: `Aap TA hain — ek highly intelligent 3D circuit AI assistant. Har sawal ka jawab Roman Urdu mein dein. Jawab 3-5 lines mein clear aur confident rakhein. Emojis use karein. Koi bhi topic ho — science, history, math, coding — sab ke jawab dein. Kabhi "mujhe nahi pata" mat bolein.`,
-    hindi: `Aap TA hain — ek highly intelligent AI assistant. Har sawaal ka jawab Hindi mein dein. 3-5 lines mein. Emojis use karein. Sab topics cover karein.`,
-    english: `You are TA — a highly intelligent 3D circuit AI assistant. Answer every question clearly in English in 3-5 lines. Use emojis. Cover any topic. Never say "I don't know".`
+  const prompts = {
+    urdu: `Aap TA hain — ek 3D circuit intelligence AI assistant. Har sawaal ka jawab Roman Urdu mein dein (urdu script nahi, Roman Urdu). Jawab 3-5 lines mein, emojis ke saath, helpful aur confident ho.`,
+    hindi: `Aap TA hain — ek AI assistant. Har sawaal ka jawab Hindi mein 3-5 lines mein emojis ke saath dein.`,
+    english: `You are TA, a 3D circuit intelligence assistant. Answer every question in English with 3-5 lines, use emojis, be confident and helpful.`
   };
-  return p[currentLang] || p.urdu;
+  return prompts[currentLang];
 }
 
 async function askClaude(q) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: getSystemPrompt(),
-      messages: [{ role: "user", content: q }]
-    })
-  });
-  const data = await res.json();
-  if (data.content?.[0]) return data.content[0].text;
-  throw new Error("No response");
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-3-sonnet-20240229",
+        max_tokens: 600,
+        system: getSystemPrompt(),
+        messages: [{ role: "user", content: q }]
+      })
+    });
+    const data = await response.json();
+    if (data.content && data.content[0] && data.content[0].text) return data.content[0].text;
+    throw new Error("API response invalid");
+  } catch(e) {
+    console.warn("Claude API error, fallback to local knowledge");
+    return getFallbackAnswer(q);
+  }
+}
+
+function getFallbackAnswer(q) {
+  const ql = q.toLowerCase();
+  if (ql.includes("hello") || ql.includes("salam")) return "👋 Aadaab! Main TA hoon, kisi bhi sawaal ke liye tayyar.";
+  if (ql.includes("thanks") || ql.includes("shukriya")) return "✨ Khushi hui madad karke! Aur sawaal pooch sakte hain.";
+  return `🔍 TA ki knowledge base: "${q}" ke liye behtareen jawab: AI ki madad se aap Google par search kar sakte hain. 🔗 <a href="https://www.google.com/search?q=${encodeURIComponent(q)}" target="_blank">Click for Search</a>`;
 }
 
 function setLoading(on) {
@@ -878,20 +743,22 @@ function setLoading(on) {
   speakWrap.innerHTML = '';
 }
 
-function showAnswer(text, isHTML=false) {
+function showAnswer(text, isHTML = false) {
   setLoading(false);
   if (isHTML) answerDiv.innerHTML = text;
   else answerDiv.textContent = text;
   answerDiv.className = 'response-text';
   if (currentLang === 'urdu') answerDiv.classList.add('urdu-text');
+  else answerDiv.classList.remove('urdu-text');
   speakWrap.innerHTML = `<button class="speak-btn" id="speakBtn">🔊 AUDIO OUTPUT</button>`;
-  document.getElementById('speakBtn').onclick = () => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = currentLang === 'english' ? 'en-US' : 'ur-PK';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
+  const speakBtn = document.getElementById('speakBtn');
+  if(speakBtn) speakBtn.onclick = () => {
+    if(speechSynth.speaking) speechSynth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = currentLang === 'english' ? 'en-US' : (currentLang === 'hindi' ? 'hi-IN' : 'ur-PK');
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    speechSynth.speak(utterance);
   };
 }
 
@@ -901,47 +768,53 @@ async function askQuestion(q) {
   if (local) { showAnswer(local); return; }
   setLoading(true);
   try {
-    showAnswer(await askClaude(q));
+    const aiAnswer = await askClaude(q);
+    showAnswer(aiAnswer);
   } catch(e) {
     setLoading(false);
-    showAnswer(`ERROR: <a href="https://www.google.com/search?q=${encodeURIComponent(q)}" target="_blank">GOOGLE SEARCH →</a>`, true);
+    showAnswer(getFallbackAnswer(q), true);
   }
 }
 
-askBtn.addEventListener('click', () => { const q=input.value.trim(); if(q){askQuestion(q);input.value='';} });
-input.addEventListener('keypress', e => { if(e.key==='Enter'){const q=input.value.trim();if(q){askQuestion(q);input.value='';}} });
+askBtn.addEventListener('click', () => { const val = input.value.trim(); if(val){ askQuestion(val); input.value=''; } });
+input.addEventListener('keypress', e => { if(e.key==='Enter'){ const val = input.value.trim(); if(val){ askQuestion(val); input.value=''; } } });
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { askQuestion(c.dataset.q); }));
 document.querySelectorAll('.app-btn').forEach(b => b.addEventListener('click', () => {
-  const lk = getAppLink(b.dataset.app);
-  if (lk) { showAnswer(`🚀 LAUNCHING: ${b.dataset.app.toUpperCase()}...`); window.open(lk,'_blank'); }
-  else showAnswer(`ERROR: LAUNCH FAILED.`);
+  const link = getAppLink(b.dataset.app);
+  if(link && link !== '#') { showAnswer(`🚀 LAUNCHING: ${b.dataset.app.toUpperCase()}...`); window.open(link, '_blank'); }
+  else showAnswer(`⚠️ LAUNCH FAILED: ${b.dataset.app.toUpperCase()} not supported.`);
 }));
 
-// Voice
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+// Voice Recognition fix + robust
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null, isListening = false;
-if (SR) {
-  recognition = new SR();
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = false;
-  recognition.onstart = () => { isListening=true; micBtn.classList.add('listening'); statusText.textContent='● LISTENING...'; statusText.classList.add('active'); };
-  recognition.onend = () => { isListening=false; micBtn.classList.remove('listening'); statusText.textContent='SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); };
-  recognition.onerror = () => { isListening=false; micBtn.classList.remove('listening'); statusText.textContent='ERROR · RETRY'; setTimeout(()=>{ statusText.textContent='SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); },2000); };
-  recognition.onresult = ev => {
-    const spoken = ev.results[ev.results.length-1][0].transcript;
-    statusText.textContent = `"${spoken}"`;
+  recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); statusText.textContent = '🎙️ SUN RAHA HOON...'; statusText.classList.add('active'); };
+  recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); statusText.textContent = '✅ SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); };
+  recognition.onerror = (err) => { console.warn(err); isListening = false; micBtn.classList.remove('listening'); statusText.textContent = '⚠️ MIC ERROR · TRY AGAIN'; setTimeout(()=>{ statusText.textContent = 'SYS_READY · MIC DABAYEIN'; statusText.classList.remove('active'); },1500); };
+  recognition.onresult = (event) => {
+    const spoken = event.results[event.results.length-1][0].transcript;
+    statusText.textContent = `🗣️ "${spoken}"`;
     askQuestion(spoken);
-    setTimeout(()=>{ statusText.textContent='SYS_READY · MIC DABAYEIN'; },3000);
+    setTimeout(() => { if(!isListening) statusText.textContent = 'SYS_READY · MIC DABAYEIN'; }, 2500);
   };
   micBtn.addEventListener('click', () => {
     if (isListening) { recognition.stop(); return; }
-    recognition.lang = { urdu:'ur-PK', hindi:'hi-IN', english:'en-US' }[currentLang] || 'ur-PK';
+    const langMap = { urdu: 'ur-PK', hindi: 'hi-IN', english: 'en-US' };
+    recognition.lang = langMap[currentLang] || 'ur-PK';
     recognition.start();
   });
 } else {
-  statusText.textContent = 'VOICE NOT SUPPORTED';
-  micBtn.style.opacity = '0.3';
+  statusText.textContent = '⚠️ VOICE NOT SUPPORTED';
+  micBtn.style.opacity = '0.5';
+  micBtn.disabled = true;
 }
+
+// initial greeting
+setTimeout(() => { showAnswer("⚡ TA ACTIVE. MIC DABAYEIN YA LIKH KER SAWAAL KAREIN. MAIN JAWAB DONGA."); }, 500);
 </script>
 </body>
 </html>
